@@ -417,9 +417,7 @@
         eventosData = {};
         allGoogleEvents.forEach(event => {
           const start = new Date(event.start.dateTime || event.start.date);
-          start.setHours(start.getHours() - 3); // Ajustar timezone
           const end = event.end.dateTime ? new Date(event.end.dateTime) : start;
-          end.setHours(end.getHours() - 3); // Ajustar timezone
 
           const dataKey = ymd(start);
           if (!eventosData[dataKey]) {
