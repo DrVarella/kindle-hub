@@ -76,7 +76,9 @@
             <div style="display: flex; gap: 10px; margin-top: 10px;">
                 <a href="index.html" class="back-link">Voltar ao Início</a>
                 <a href="exame.html" class="back-link">Exame</a>
-                <a href="oracoes.html" class="back-link">Orações</a>
+                <a href="https://opusdei.org/pt-br/prayers/?pb1=pt-br&pb2=latin" class="back-link" target="_blank" rel="noopener noreferrer">Orações</a>
+                <a href="ag.html" class="back-link">AG</a>
+                <a href="contemplacao.html" class="back-link">Contemplação</a>
             </div>
         </div>
 
@@ -120,6 +122,34 @@
             'Sábado'
         ];
 
+        let notionEnabled = false;
+        let notionHabitsMap = {}; // Mapa nome -> pageId
+
+        // Tentar carregar do Notion
+        async function loadFromNotion() {
+            try {
+                const response = await fetch('/api/notion/habits');
+                if (response.ok) {
+                    const habits = await response.json();
+                    notionEnabled = true;
+
+                    // Criar mapa de hábitos do Notion
+                    habits.forEach(habit => {
+                        notionHabitsMap[habit.nome] = habit;
+                    });
+
+                    console.log('✅ Notion integrado com sucesso');
+                    return true;
+                } else {
+                    console.warn('⚠️ Notion não configurado, usando localStorage');
+                    return false;
+                }
+            } catch (error) {
+                console.warn('⚠️ Erro ao conectar com Notion:', error);
+                return false;
+            }
+        }
+
         // Carregar estado do localStorage
         function loadState() {
             const dailyState = JSON.parse(localStorage.getItem('dailyHabitsState') || '{}');
@@ -133,13 +163,41 @@
             localStorage.setItem('weeklyHabitsState', JSON.stringify(weeklyState));
         }
 
+        // Sincronizar com Notion
+        async function syncWithNotion(habitName, checked) {
+            if (!notionEnabled || !notionHabitsMap[habitName]) {
+                return false;
+            }
+
+            try {
+                const pageId = notionHabitsMap[habitName].id;
+                const response = await fetch(`/api/notion/habits/${pageId}`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ concluido: checked })
+                });
+
+                if (response.ok) {
+                    notionHabitsMap[habitName].concluido = checked;
+                    return true;
+                }
+                return false;
+            } catch (error) {
+                console.error('Erro ao sincronizar com Notion:', error);
+                return false;
+            }
+        }
+
         // Renderizar hábitos diários
-        function renderDaily() {
+        async function renderDaily() {
             const { dailyState } = loadState();
             const container = document.getElementById('dailyHabits');
 
             const html = dailyHabits.map((habit, index) => {
-                const isChecked = dailyState[habit] || false;
+                // Priorizar estado do Notion se disponível
+                const isChecked = notionEnabled && notionHabitsMap[habit]
+                    ? notionHabitsMap[habit].concluido
+                    : (dailyState[habit] || false);
                 return `
                     <div class="habit-item ${isChecked ? 'completed' : ''}">
                         <input type="checkbox"
@@ -176,18 +234,28 @@
         }
 
         // Toggle hábito diário
-        function toggleDaily(habit, checked) {
+        async function toggleDaily(habit, checked) {
+            // Salvar em localStorage sempre
             const { dailyState, weeklyState } = loadState();
             dailyState[habit] = checked;
             saveState(dailyState, weeklyState);
+
+            // Tentar sincronizar com Notion
+            await syncWithNotion(habit, checked);
+
             renderDaily();
         }
 
         // Toggle hábito semanal
-        function toggleWeekly(habit, checked) {
+        async function toggleWeekly(habit, checked) {
+            // Salvar em localStorage sempre
             const { dailyState, weeklyState } = loadState();
             weeklyState[habit] = checked;
             saveState(dailyState, weeklyState);
+
+            // Tentar sincronizar com Notion
+            await syncWithNotion(habit, checked);
+
             renderWeekly();
         }
 
@@ -210,8 +278,13 @@
         }
 
         // Inicializar
-        renderDaily();
-        renderWeekly();
+        async function init() {
+            await loadFromNotion();
+            renderDaily();
+            renderWeekly();
+        }
+
+        init();
     </script>
 </body>
 </html>

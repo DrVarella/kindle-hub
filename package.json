@@ -15,9 +15,13 @@
   "author": "Pedro",
   "license": "MIT",
   "dependencies": {
+    "@microsoft/microsoft-graph-client": "^3.0.7",
+    "@notionhq/client": "^5.4.0",
     "better-sqlite3": "^9.2.2",
     "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
     "express": "^4.18.2",
-    "googleapis": "^165.0.0"
+    "googleapis": "^165.0.0",
+    "isomorphic-fetch": "^3.0.0"
   }
 }

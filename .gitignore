@@ -5,3 +5,8 @@ database.db
 .DS_Store
 credentials.json
 token.json
+notion-token.txt
+ms-token.txt
+*.db
+*.sqlite
+*.sqlite3

@@ -9,218 +9,147 @@
 <body>
     <div class="page-container">
         <div class="header">
-            <h1>Tarefas</h1>
-            <a href="index.html" class="back-link">Voltar ao Início</a>
-        </div>
-
-        <div class="form-section">
-            <h2>Nova Tarefa</h2>
-            <form id="taskForm">
-                <div class="form-group">
-                    <label for="title">Título:</label>
-                    <input type="text" id="title" required>
-                </div>
-                <div class="form-group">
-                    <label for="description">Descrição:</label>
-                    <textarea id="description"></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="priority">Prioridade:</label>
-                    <select id="priority">
-                        <option value="low">Baixa</option>
-                        <option value="normal" selected>Normal</option>
-                        <option value="high">Alta</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="dueDate">Data de vencimento:</label>
-                    <input type="date" id="dueDate">
-                </div>
-                <button type="submit" class="btn btn-primary">Adicionar Tarefa</button>
-            </form>
+            <h1>Tarefas (Google Tasks)</h1>
+            <a href="dashboard.html" class="back-link">Voltar ao Dashboard</a>
         </div>
 
         <div class="list-section">
-            <h2>Tarefas do Google Tasks</h2>
-            <div id="googleTasksList" class="loading">Carregando...</div>
-        </div>
-
-        <div class="list-section">
-            <h2>Tarefas Locais</h2>
+            <h2>Minhas Tarefas do Google Tasks</h2>
             <div id="tasksList" class="loading">Carregando tarefas...</div>
+            <div id="errorMessage" style="display: none; padding: 20px; background: #fff3cd; border: 2px solid #ffc107; margin-top: 15px;">
+                <strong>⚠️ Google Tasks não configurado</strong>
+                <p style="margin: 10px 0;">As mesmas credenciais do Google Calendar já habilitam o Google Tasks automaticamente.</p>
+            </div>
         </div>
     </div>
 
     <script>
         const API_URL = window.location.origin;
 
-        // Carregar Google Tasks
-        async function loadGoogleTasks() {
-            try {
-                const response = await fetch(`${API_URL}/api/google-tasks`);
-                if (response.ok) {
-                    const tasks = await response.json();
-                    displayGoogleTasks(tasks);
-                } else {
-                    document.getElementById('googleTasksList').innerHTML = '<p class="empty-state">Google Tasks não disponível</p>';
-                }
-            } catch (error) {
-                document.getElementById('googleTasksList').innerHTML = '<p class="empty-state">Google Tasks não disponível</p>';
-            }
-        }
-
-        // Exibir Google Tasks com checkbox
-        function displayGoogleTasks(tasks) {
-            const container = document.getElementById('googleTasksList');
-
-            if (tasks.length === 0) {
-                container.innerHTML = '<p class="empty-state">Nenhuma tarefa no Google Tasks</p>';
-                return;
-            }
-
-            container.innerHTML = tasks.map(task => {
-                const isCompleted = task.status === 'completed';
-                return `
-                    <div class="item ${isCompleted ? 'completed' : ''}">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="checkbox"
-                                   ${isCompleted ? 'checked' : ''}
-                                   onchange="toggleGoogleTask('${task.id}', this.checked)"
-                                   style="width: 20px; height: 20px; cursor: pointer;">
-                            <div style="flex: 1;">
-                                <div class="item-title">${task.title}</div>
-                                ${task.notes ? `<div class="item-content">${task.notes}</div>` : ''}
-                                ${task.due ? `<div class="item-meta">Vencimento: ${formatGoogleDate(task.due)}</div>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Toggle Google Task
-        async function toggleGoogleTask(taskId, completed) {
-            try {
-                const status = completed ? 'completed' : 'needsAction';
-                await fetch(`${API_URL}/api/google-tasks/${taskId}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status })
-                });
-                loadGoogleTasks();
-            } catch (error) {
-                alert('Erro ao atualizar tarefa');
-            }
-        }
-
-        // Formatar data do Google
-        function formatGoogleDate(dateStr) {
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('pt-BR');
-        }
-
-        // Carregar tarefas locais
+        // Carregar tarefas do Google Tasks
         async function loadTasks() {
             try {
-                const response = await fetch(`${API_URL}/api/tasks`);
-                const tasks = await response.json();
-                displayTasks(tasks);
+                const response = await fetch(`${API_URL}/api/google-tasks`);
+
+                if (response.ok) {
+                    const tasks = await response.json();
+                    displayTasks(tasks);
+                    document.getElementById('errorMessage').style.display = 'none';
+                } else {
+                    const error = await response.json();
+                    showError(error.error || 'Erro ao carregar tarefas');
+                }
             } catch (error) {
-                document.getElementById('tasksList').innerHTML = '<p class="message error">Erro ao carregar tarefas</p>';
+                console.error('Erro ao carregar tarefas:', error);
+                showError('Erro ao conectar com o servidor');
             }
         }
 
         // Exibir tarefas
         function displayTasks(tasks) {
             const container = document.getElementById('tasksList');
-            
+
             if (tasks.length === 0) {
-                container.innerHTML = '<p class="empty-state">Nenhuma tarefa cadastrada</p>';
+                container.innerHTML = '<p class="empty-state">Nenhuma tarefa no Google Tasks</p>';
                 return;
             }
 
-            const priorityLabels = {
-                'low': 'Baixa',
-                'normal': 'Normal',
-                'high': 'Alta'
-            };
+            // Agrupar tarefas por status
+            const pendingTasks = tasks.filter(t => t.status !== 'completed');
+            const completedTasks = tasks.filter(t => t.status === 'completed');
 
-            container.innerHTML = tasks.map(task => `
-                <div class="item ${task.completed ? 'completed' : ''}">
-                    <div class="item-title">${task.title}</div>
-                    ${task.description ? `<div class="item-content">${task.description}</div>` : ''}
-                    <div class="item-meta">
-                        Prioridade: ${priorityLabels[task.priority] || 'Normal'}
-                        ${task.due_date ? ` | Vencimento: ${formatDate(task.due_date)}` : ''}
-                    </div>
-                    <div class="item-actions">
-                        <button class="btn-small" onclick="toggleTask(${task.id}, ${task.completed ? 0 : 1})">
-                            ${task.completed ? 'Reabrir' : 'Concluir'}
-                        </button>
-                        <button class="btn-small" onclick="deleteTask(${task.id})">Excluir</button>
-                    </div>
-                </div>
-            `).join('');
+            let html = '';
+
+            // Tarefas pendentes
+            if (pendingTasks.length > 0) {
+                html += '<h3 style="margin-top: 0; color: #333;">Pendentes</h3>';
+                html += pendingTasks.map(task => renderTask(task)).join('');
+            }
+
+            // Tarefas concluídas (recolhidas)
+            if (completedTasks.length > 0) {
+                html += '<details style="margin-top: 20px;"><summary style="cursor: pointer; font-weight: bold; padding: 10px; background: #f5f5f5; border: 2px solid #000;">Concluídas (' + completedTasks.length + ')</summary>';
+                html += '<div style="margin-top: 10px;">';
+                html += completedTasks.map(task => renderTask(task)).join('');
+                html += '</div></details>';
+            }
+
+            container.innerHTML = html;
         }
 
-        // Adicionar nova tarefa
-        document.getElementById('taskForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const title = document.getElementById('title').value;
-            const description = document.getElementById('description').value;
-            const priority = document.getElementById('priority').value;
-            const dueDate = document.getElementById('dueDate').value;
+        // Renderizar uma tarefa individual
+        function renderTask(task) {
+            const isCompleted = task.status === 'completed';
+            const dueDate = task.due ? formatDate(task.due) : null;
 
+            return `
+                <div class="item ${isCompleted ? 'completed' : ''}" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px; margin-bottom: 8px; border: 2px solid #ddd; background: ${isCompleted ? '#f5f5f5' : '#fff'};">
+                    <input type="checkbox"
+                           ${isCompleted ? 'checked' : ''}
+                           onchange="toggleTask('${task.id}', this.checked)"
+                           style="width: 20px; height: 20px; cursor: pointer; margin-top: 2px;">
+                    <div style="flex: 1;">
+                        <div class="item-title" style="font-size: 16px; font-weight: bold; ${isCompleted ? 'text-decoration: line-through; color: #999;' : ''}">
+                            ${escapeHtml(task.title)}
+                        </div>
+                        ${task.notes ? `<div class="item-content" style="margin-top: 4px; color: #666;">${escapeHtml(task.notes)}</div>` : ''}
+                        ${dueDate ? `<div class="item-meta" style="margin-top: 4px; font-size: 14px; color: #666;">📅 Vencimento: ${dueDate}</div>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        // Toggle tarefa (marcar/desmarcar)
+        async function toggleTask(taskId, completed) {
             try {
-                await fetch(`${API_URL}/api/tasks`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title, description, priority, due_date: dueDate })
-                });
-
-                document.getElementById('taskForm').reset();
-                loadTasks();
-            } catch (error) {
-                alert('Erro ao adicionar tarefa');
-            }
-        });
-
-        // Marcar/desmarcar tarefa
-        async function toggleTask(id, completed) {
-            try {
-                await fetch(`${API_URL}/api/tasks/${id}`, {
+                const status = completed ? 'completed' : 'needsAction';
+                const response = await fetch(`${API_URL}/api/google-tasks/${taskId}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ completed })
+                    body: JSON.stringify({ status })
                 });
-                loadTasks();
+
+                if (response.ok) {
+                    loadTasks(); // Recarregar lista
+                } else {
+                    const error = await response.json();
+                    alert('Erro ao atualizar tarefa: ' + (error.error || 'Erro desconhecido'));
+                }
             } catch (error) {
+                console.error('Erro ao atualizar tarefa:', error);
                 alert('Erro ao atualizar tarefa');
             }
         }
 
-        // Excluir tarefa
-        async function deleteTask(id) {
-            if (confirm('Deseja realmente excluir esta tarefa?')) {
-                try {
-                    await fetch(`${API_URL}/api/tasks/${id}`, { method: 'DELETE' });
-                    loadTasks();
-                } catch (error) {
-                    alert('Erro ao excluir tarefa');
-                }
-            }
+        // Mostrar mensagem de erro
+        function showError(message) {
+            const container = document.getElementById('tasksList');
+            const errorDiv = document.getElementById('errorMessage');
+
+            container.innerHTML = `<p class="empty-state" style="color: #dc3545;">Google Tasks não está acessível no momento.</p>`;
+            errorDiv.style.display = 'block';
         }
 
         // Formatar data
         function formatDate(dateString) {
-            const date = new Date(dateString + 'T00:00:00');
+            if (!dateString) return '';
+            const date = new Date(dateString);
             return date.toLocaleDateString('pt-BR');
         }
 
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Carregar ao iniciar
-        loadGoogleTasks();
         loadTasks();
+
+        // Recarregar a cada 2 minutos
+        setInterval(loadTasks, 120000);
     </script>
 </body>
 </html>

@@ -305,10 +305,24 @@
   <div id="vp" class="viewport rotated">
     <!-- LADO ESQUERDO: RELÓGIO -->
     <section class="secao-relogio">
-      <!-- Painel de Controles Flutuante -->
-      <div id="painelControles" class="painel-controles minimizado">
-        <button class="btn-toggle" onclick="toggleControles()">...</button>
+      <!-- Painel de Menu Principal (Hub + Config) -->
+      <div id="painelMenu" class="painel-controles minimizado" style="max-width: 400px;">
+        <button class="btn-toggle" onclick="toggleMenu()">⋮</button>
         <div class="conteudo-controles">
+          <!-- Hub: Atalhos -->
+          <details open>
+            <summary style="cursor: pointer; font-weight: bold; padding: 8px; background: #f0f0f0; border-radius: 4px; margin-bottom: 10px;">Hub</summary>
+            <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
+              <a href="agenda.html" style="padding: 10px; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; font-weight: bold; text-align: center; border-radius: 4px;">Agenda</a>
+              <a href="tasks.html" style="padding: 10px; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; font-weight: bold; text-align: center; border-radius: 4px;">Tarefas</a>
+              <a href="plano-inclinado.html" style="padding: 10px; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; font-weight: bold; text-align: center; border-radius: 4px;">Plano de Vida</a>
+            </div>
+          </details>
+
+          <!-- Configurações -->
+          <details>
+            <summary style="cursor: pointer; font-weight: bold; padding: 8px; background: #f0f0f0; border-radius: 4px; margin-bottom: 10px;">Config.</summary>
+            <div style="padding: 10px;">
           <div class="grupo-controle">
             <label class="label-controle">
               Tamanho do Relógio
@@ -360,6 +374,8 @@
               <label for="checkMostrarEventos">Mostrar Eventos</label>
             </div>
           </div>
+            </div>
+          </details>
         </div>
       </div>
 
@@ -451,17 +467,17 @@
   var offsetDia = 0; // -1=ontem, 0=hoje, 1=amanhã
 
   // ====== CONTROLES ======
-  function toggleControles(){
-    var painel = document.getElementById('painelControles');
+  function toggleMenu(){
+    var painel = document.getElementById('painelMenu');
 
     if(painel.className.indexOf('minimizado') >= 0){
       // Expandir
       painel.className = 'painel-controles';
-      localStorage.setItem('painelAberto', 'true');
+      localStorage.setItem('menuAberto', 'true');
     } else {
       // Minimizar
       painel.className = 'painel-controles minimizado';
-      localStorage.setItem('painelAberto', 'false');
+      localStorage.setItem('menuAberto', 'false');
     }
   }
 
@@ -714,10 +730,10 @@
       document.getElementById('vp').className = rotSalva;
     }
 
-    // Carregar estado do painel
-    var painelAberto = localStorage.getItem('painelAberto');
-    if(painelAberto === 'true'){
-      document.getElementById('painelControles').className = 'painel-controles';
+    // Carregar estado do menu
+    var menuAberto = localStorage.getItem('menuAberto');
+    if(menuAberto === 'true'){
+      document.getElementById('painelMenu').className = 'painel-controles';
     }
 
     // Carregar proporção salva

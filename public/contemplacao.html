@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contemplação - Hub Kindle</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .contemplacao-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .misterios-selector {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .misterio-btn {
+            padding: 12px 20px;
+            background: #fff;
+            border: 2px solid #000;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.2s;
+        }
+
+        .misterio-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .misterio-btn.ativo {
+            background: #000;
+            color: #fff;
+        }
+
+        .galeria-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .imagem-atual {
+            max-width: 100%;
+            max-height: 500px;
+            border: 3px solid #000;
+            margin-bottom: 20px;
+            background: #f5f5f5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .imagem-atual img {
+            max-width: 100%;
+            max-height: 500px;
+            display: block;
+        }
+
+        .sem-imagem {
+            padding: 60px;
+            color: #666;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .imagem-info {
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .navegacao {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .nav-btn {
+            padding: 15px 40px;
+            background: #fff;
+            border: 3px solid #000;
+            font-weight: bold;
+            font-size: 24px;
+            cursor: pointer;
+            min-width: 80px;
+        }
+
+        .nav-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .nav-btn:active {
+            background: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="header">
+            <h1>Contemplação</h1>
+            <a href="plano-inclinado.html" class="back-link">Voltar ao Plano Inclinado</a>
+        </div>
+
+        <div class="contemplacao-container">
+            <div class="misterios-selector">
+                <button class="misterio-btn ativo" onclick="selecionarMisterio('gozosos')">Gozosos</button>
+                <button class="misterio-btn" onclick="selecionarMisterio('dolorosos')">Dolorosos</button>
+                <button class="misterio-btn" onclick="selecionarMisterio('gloriosos')">Gloriosos</button>
+                <button class="misterio-btn" onclick="selecionarMisterio('luminosos')">Luminosos</button>
+            </div>
+
+            <div class="galeria-container">
+                <div id="imagemInfo" class="imagem-info">—</div>
+
+                <div id="imagemAtual" class="imagem-atual">
+                    <div class="sem-imagem">Carregando...</div>
+                </div>
+
+                <div class="navegacao">
+                    <button class="nav-btn" onclick="anterior()">◄</button>
+                    <button class="nav-btn" onclick="proximo()">►</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let misterioAtual = 'gozosos';
+        let indiceAtual = 0;
+        let imagens = [];
+
+        const misterios = {
+            gozosos: {
+                nome: 'Mistérios Gozosos',
+                titulos: [
+                    'Anunciação do Anjo a Maria',
+                    'Visitação de Maria a Isabel',
+                    'Nascimento de Jesus',
+                    'Apresentação de Jesus no Templo',
+                    'Encontro de Jesus no Templo'
+                ]
+            },
+            dolorosos: {
+                nome: 'Mistérios Dolorosos',
+                titulos: [
+                    'Agonia de Jesus no Horto',
+                    'Flagelação de Jesus',
+                    'Coroação de Espinhos',
+                    'Jesus carrega a Cruz',
+                    'Crucificação e Morte de Jesus'
+                ]
+            },
+            gloriosos: {
+                nome: 'Mistérios Gloriosos',
+                titulos: [
+                    'Ressurreição de Jesus',
+                    'Ascensão de Jesus ao Céu',
+                    'Vinda do Espírito Santo',
+                    'Assunção de Maria',
+                    'Coroação de Maria'
+                ]
+            },
+            luminosos: {
+                nome: 'Mistérios Luminosos',
+                titulos: [
+                    'Batismo de Jesus no Jordão',
+                    'Bodas de Caná',
+                    'Anúncio do Reino de Deus',
+                    'Transfiguração de Jesus',
+                    'Instituição da Eucaristia'
+                ]
+            }
+        };
+
+        function carregarPreferencias() {
+            const misterioSalvo = localStorage.getItem('misterioAtual');
+            const indiceSalvo = localStorage.getItem('indiceAtual');
+
+            if (misterioSalvo && misterios[misterioSalvo]) {
+                misterioAtual = misterioSalvo;
+            }
+
+            if (indiceSalvo !== null) {
+                indiceAtual = parseInt(indiceSalvo) || 0;
+            }
+        }
+
+        function salvarPreferencias() {
+            localStorage.setItem('misterioAtual', misterioAtual);
+            localStorage.setItem('indiceAtual', indiceAtual);
+        }
+
+        async function carregarImagens() {
+            try {
+                // Tentar carregar imagens da pasta /cont/{misterioAtual}/
+                const response = await fetch(`/api/imagens/${misterioAtual}`);
+                if (response.ok) {
+                    imagens = await response.json();
+                } else {
+                    // Se não houver endpoint, usar lista padrão de 5 imagens
+                    imagens = [];
+                    for (let i = 1; i <= 5; i++) {
+                        imagens.push(`/cont/${misterioAtual}/${i}.jpg`);
+                    }
+                }
+            } catch (error) {
+                console.error('Erro ao carregar imagens:', error);
+                // Fallback: assumir 5 imagens numeradas
+                imagens = [];
+                for (let i = 1; i <= 5; i++) {
+                    imagens.push(`/cont/${misterioAtual}/${i}.jpg`);
+                }
+            }
+
+            // Garantir que o índice está dentro dos limites
+            if (indiceAtual >= imagens.length) {
+                indiceAtual = 0;
+            }
+
+            exibirImagem();
+        }
+
+        function exibirImagem() {
+            const container = document.getElementById('imagemAtual');
+            const info = document.getElementById('imagemInfo');
+
+            if (imagens.length === 0) {
+                container.innerHTML = '<div class="sem-imagem">Nenhuma imagem encontrada para este mistério.<br>Adicione imagens na pasta /cont/' + misterioAtual + '/</div>';
+                info.textContent = '—';
+                return;
+            }
+
+            const imagemPath = imagens[indiceAtual];
+            const numero = indiceAtual + 1;
+            const total = imagens.length;
+            const misterio = misterios[misterioAtual];
+            const titulo = misterio.titulos[indiceAtual] || `Imagem ${numero}`;
+
+            info.textContent = `${misterio.nome} - ${titulo} (${numero}/${total})`;
+
+            const img = new Image();
+            img.onload = function() {
+                container.innerHTML = '';
+                container.appendChild(img);
+            };
+            img.onerror = function() {
+                container.innerHTML = `<div class="sem-imagem">Imagem não encontrada:<br>${imagemPath}</div>`;
+            };
+            img.src = imagemPath;
+
+            salvarPreferencias();
+        }
+
+        function selecionarMisterio(tipo) {
+            misterioAtual = tipo;
+            indiceAtual = 0;
+
+            // Atualizar botões ativos
+            document.querySelectorAll('.misterio-btn').forEach(btn => {
+                btn.classList.remove('ativo');
+            });
+            event.target.classList.add('ativo');
+
+            carregarImagens();
+        }
+
+        function anterior() {
+            if (imagens.length === 0) return;
+
+            indiceAtual--;
+            if (indiceAtual < 0) {
+                indiceAtual = imagens.length - 1;
+            }
+            exibirImagem();
+        }
+
+        function proximo() {
+            if (imagens.length === 0) return;
+
+            indiceAtual++;
+            if (indiceAtual >= imagens.length) {
+                indiceAtual = 0;
+            }
+            exibirImagem();
+        }
+
+        // Suporte para teclas de seta
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                anterior();
+            } else if (e.key === 'ArrowRight') {
+                proximo();
+            }
+        });
+
+        // Inicializar
+        carregarPreferencias();
+        carregarImagens();
+
+        // Atualizar botão ativo baseado na preferência salva
+        document.querySelectorAll('.misterio-btn').forEach(btn => {
+            btn.classList.remove('ativo');
+        });
+        document.querySelector(`[onclick="selecionarMisterio('${misterioAtual}')"]`).classList.add('ativo');
+    </script>
+</body>
+</html>
