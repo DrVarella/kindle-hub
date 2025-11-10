@@ -15,7 +15,6 @@
   "author": "Pedro",
   "license": "MIT",
   "dependencies": {
-    "@microsoft/microsoft-graph-client": "^3.0.7",
     "@notionhq/client": "^5.4.0",
     "better-sqlite3": "^9.2.2",
     "cors": "^2.8.5",

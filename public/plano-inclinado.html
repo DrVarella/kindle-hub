@@ -264,6 +264,10 @@
             if (confirm('Deseja resetar todos os hábitos diários?')) {
                 const { weeklyState } = loadState();
                 saveState({}, weeklyState);
+
+                // Salvar a data do último reset
+                localStorage.setItem('lastDailyReset', new Date().toDateString());
+
                 renderDaily();
             }
         }
@@ -277,11 +281,50 @@
             }
         }
 
+        // Verificar se precisa resetar (mudança de dia)
+        function checkAutoReset() {
+            const today = new Date().toDateString();
+            const lastReset = localStorage.getItem('lastDailyReset');
+
+            // Se nunca foi resetado ou se mudou de dia
+            if (!lastReset || lastReset !== today) {
+                console.log('🔄 Novo dia detectado! Resetando hábitos diários...');
+
+                // Reset automático (sem confirmação)
+                const { weeklyState } = loadState();
+                saveState({}, weeklyState);
+
+                // Salvar a data do reset
+                localStorage.setItem('lastDailyReset', today);
+
+                return true;
+            }
+
+            return false;
+        }
+
         // Inicializar
         async function init() {
             await loadFromNotion();
+
+            // Verificar e fazer auto-reset se necessário
+            const wasReset = checkAutoReset();
+
             renderDaily();
             renderWeekly();
+
+            if (wasReset) {
+                console.log('✅ Hábitos diários resetados para o novo dia!');
+            }
+
+            // Verificar a cada minuto se mudou de dia
+            setInterval(() => {
+                const resetou = checkAutoReset();
+                if (resetou) {
+                    renderDaily();
+                    console.log('✅ Auto-reset executado!');
+                }
+            }, 60000); // 1 minuto
         }
 
         init();

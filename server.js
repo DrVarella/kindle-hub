@@ -7,7 +7,6 @@ const path = require('path');
 const { google } = require('googleapis');
 const fs = require('fs');
 const { Client: NotionClient } = require('@notionhq/client');
-const { Client: MSGraphClient } = require('@microsoft/microsoft-graph-client');
 require('isomorphic-fetch');
 
 const app = express();
@@ -19,7 +18,6 @@ const TOKEN_PATH = path.join(__dirname, 'token.json');
 
 let auth = null;
 let notionClient = null;
-let msGraphClient = null;
 
 // Configuração do Notion
 function loadNotionClient() {
@@ -32,20 +30,6 @@ function loadNotionClient() {
   }
 }
 
-// Configuração do Microsoft Graph (To Do)
-function loadMSGraphClient() {
-  try {
-    const msAccessToken = process.env.MS_ACCESS_TOKEN || fs.readFileSync(path.join(__dirname, 'ms-token.txt'), 'utf8').trim();
-    msGraphClient = MSGraphClient.init({
-      authProvider: (done) => {
-        done(null, msAccessToken);
-      }
-    });
-    console.log('✅ Microsoft Graph API configurada com sucesso');
-  } catch (error) {
-    console.warn('⚠️  Microsoft Token não encontrado:', error.message);
-  }
-}
 
 // Carregar credenciais do Google
 async function loadGoogleAuth() {
@@ -204,67 +188,6 @@ app.put('/api/google-tasks/:taskId', async (req, res) => {
   }
 });
 
-// ============= ROTAS DO MICROSOFT TO DO =============
-app.get('/api/ms-todo/lists', async (req, res) => {
-  if (!msGraphClient) {
-    return res.status(500).json({ error: 'Microsoft To Do não configurado' });
-  }
-
-  try {
-    const lists = await msGraphClient.api('/me/todo/lists').get();
-    res.json(lists.value || []);
-  } catch (error) {
-    console.error('Erro ao buscar listas do To Do:', error.message);
-    res.status(500).json({ error: 'Erro ao buscar listas do Microsoft To Do', details: error.message });
-  }
-});
-
-app.get('/api/ms-todo/tasks', async (req, res) => {
-  if (!msGraphClient) {
-    return res.status(500).json({ error: 'Microsoft To Do não configurado' });
-  }
-
-  try {
-    const listId = process.env.MS_TODO_LIST_ID || req.query.listId;
-    if (!listId) {
-      return res.status(400).json({ error: 'List ID não especificado' });
-    }
-
-    const tasks = await msGraphClient.api(`/me/todo/lists/${listId}/tasks`).get();
-    res.json(tasks.value || []);
-  } catch (error) {
-    console.error('Erro ao buscar tarefas do To Do:', error.message);
-    res.status(500).json({ error: 'Erro ao buscar tarefas do Microsoft To Do', details: error.message });
-  }
-});
-
-app.patch('/api/ms-todo/tasks/:taskId', async (req, res) => {
-  if (!msGraphClient) {
-    return res.status(500).json({ error: 'Microsoft To Do não configurado' });
-  }
-
-  try {
-    const { taskId } = req.params;
-    const listId = process.env.MS_TODO_LIST_ID || req.body.listId;
-    if (!listId) {
-      return res.status(400).json({ error: 'List ID não especificado' });
-    }
-
-    const updateData = {};
-    if (req.body.status !== undefined) {
-      updateData.status = req.body.status;
-    }
-    if (req.body.title !== undefined) {
-      updateData.title = req.body.title;
-    }
-
-    await msGraphClient.api(`/me/todo/lists/${listId}/tasks/${taskId}`).patch(updateData);
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro ao atualizar tarefa do To Do:', error.message);
-    res.status(500).json({ error: 'Erro ao atualizar tarefa do Microsoft To Do', details: error.message });
-  }
-});
 
 // ============= ROTAS DO NOTION (PLANO DE VIDA) =============
 app.get('/api/notion/habits', async (req, res) => {
@@ -364,7 +287,11 @@ app.patch('/api/notion/habits/:pageId', async (req, res) => {
     }
 
     // Extrair o pageId real (remover o sufixo do habitName se existir)
-    const realPageId = pageId.split('-')[0];
+    // O pageId vem no formato: "uuid-uuid-uuid-uuid-uuid-habitName"
+    // Precisamos remover apenas a última parte (habitName)
+    const parts = pageId.split('-');
+    // UUID do Notion tem 5 partes (8-4-4-4-12 caracteres), então pegamos as primeiras 5 partes
+    const realPageId = parts.slice(0, 5).join('-');
 
     // Usar fetch para atualizar a propriedade específica do hábito
     const response = await fetch(`https://api.notion.com/v1/pages/${realPageId}`, {
@@ -402,7 +329,6 @@ app.get('/', (req, res) => {
 async function initializeServices() {
   await loadGoogleAuth();
   loadNotionClient();
-  loadMSGraphClient();
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ Servidor rodando em:`);
