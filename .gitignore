@@ -3,3 +3,5 @@ database.db
 *.log
 .env
 .DS_Store
+credentials.json
+token.json

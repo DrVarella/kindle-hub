@@ -41,7 +41,12 @@
         </div>
 
         <div class="list-section">
-            <h2>Minhas Tarefas</h2>
+            <h2>Tarefas do Google Tasks</h2>
+            <div id="googleTasksList" class="loading">Carregando...</div>
+        </div>
+
+        <div class="list-section">
+            <h2>Tarefas Locais</h2>
             <div id="tasksList" class="loading">Carregando tarefas...</div>
         </div>
     </div>
@@ -49,7 +54,72 @@
     <script>
         const API_URL = window.location.origin;
 
-        // Carregar tarefas
+        // Carregar Google Tasks
+        async function loadGoogleTasks() {
+            try {
+                const response = await fetch(`${API_URL}/api/google-tasks`);
+                if (response.ok) {
+                    const tasks = await response.json();
+                    displayGoogleTasks(tasks);
+                } else {
+                    document.getElementById('googleTasksList').innerHTML = '<p class="empty-state">Google Tasks não disponível</p>';
+                }
+            } catch (error) {
+                document.getElementById('googleTasksList').innerHTML = '<p class="empty-state">Google Tasks não disponível</p>';
+            }
+        }
+
+        // Exibir Google Tasks com checkbox
+        function displayGoogleTasks(tasks) {
+            const container = document.getElementById('googleTasksList');
+
+            if (tasks.length === 0) {
+                container.innerHTML = '<p class="empty-state">Nenhuma tarefa no Google Tasks</p>';
+                return;
+            }
+
+            container.innerHTML = tasks.map(task => {
+                const isCompleted = task.status === 'completed';
+                return `
+                    <div class="item ${isCompleted ? 'completed' : ''}">
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="checkbox"
+                                   ${isCompleted ? 'checked' : ''}
+                                   onchange="toggleGoogleTask('${task.id}', this.checked)"
+                                   style="width: 20px; height: 20px; cursor: pointer;">
+                            <div style="flex: 1;">
+                                <div class="item-title">${task.title}</div>
+                                ${task.notes ? `<div class="item-content">${task.notes}</div>` : ''}
+                                ${task.due ? `<div class="item-meta">Vencimento: ${formatGoogleDate(task.due)}</div>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Toggle Google Task
+        async function toggleGoogleTask(taskId, completed) {
+            try {
+                const status = completed ? 'completed' : 'needsAction';
+                await fetch(`${API_URL}/api/google-tasks/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status })
+                });
+                loadGoogleTasks();
+            } catch (error) {
+                alert('Erro ao atualizar tarefa');
+            }
+        }
+
+        // Formatar data do Google
+        function formatGoogleDate(dateStr) {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('pt-BR');
+        }
+
+        // Carregar tarefas locais
         async function loadTasks() {
             try {
                 const response = await fetch(`${API_URL}/api/tasks`);
@@ -149,6 +219,7 @@
         }
 
         // Carregar ao iniciar
+        loadGoogleTasks();
         loadTasks();
     </script>
 </body>

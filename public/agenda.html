@@ -5,6 +5,134 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agenda - Hub Kindle</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .calendar-container {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #000;
+            background: #fff;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .calendar-header h2 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .calendar-nav {
+            display: flex;
+            gap: 10px;
+        }
+
+        .calendar-nav button {
+            padding: 8px 15px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid #000;
+            background: #fff;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+            margin-bottom: 10px;
+        }
+
+        .calendar-day-header {
+            text-align: center;
+            font-weight: bold;
+            padding: 8px;
+            background: #f0f0f0;
+            border: 1px solid #000;
+            font-size: 14px;
+        }
+
+        .calendar-day {
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+            min-height: 40px;
+            background: #fff;
+            font-size: 16px;
+        }
+
+        .calendar-day:hover {
+            background: #f5f5f5;
+        }
+
+        .calendar-day.today {
+            background: #000;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .calendar-day.selected {
+            background: #666;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .calendar-day.other-month {
+            color: #ccc;
+        }
+
+        .calendar-day.has-events {
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .week-nav {
+            display: flex;
+            gap: 5px;
+            margin-top: 10px;
+            justify-content: center;
+        }
+
+        .week-day-btn {
+            padding: 8px 12px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            border: 2px solid #000;
+            background: #fff;
+        }
+
+        .week-day-btn.active {
+            background: #000;
+            color: #fff;
+        }
+
+        .events-list {
+            margin-top: 20px;
+        }
+
+        .event-item {
+            padding: 12px;
+            border-left: 4px solid #000;
+            margin-bottom: 10px;
+            background: #f9f9f9;
+        }
+
+        .event-time {
+            font-weight: bold;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .event-title {
+            font-size: 18px;
+            margin-top: 4px;
+        }
+    </style>
 </head>
 <body>
     <div class="page-container">
@@ -13,19 +141,234 @@
             <a href="index.html" class="back-link">Voltar ao Início</a>
         </div>
 
-        <div class="message">
-            <p><strong>Funcionalidade em desenvolvimento</strong></p>
-            <p>A integração com o Google Calendar será implementada em breve.</p>
-            <p>Por enquanto, você pode visualizar seus compromissos através do Google Calendar diretamente.</p>
-        </div>
+        <div class="calendar-container">
+            <div class="calendar-header">
+                <h2 id="monthYear"></h2>
+                <div class="calendar-nav">
+                    <button onclick="changeMonth(-1)">← Anterior</button>
+                    <button onclick="goToToday()">Hoje</button>
+                    <button onclick="changeMonth(1)">Próximo →</button>
+                </div>
+            </div>
 
-        <div class="list-section">
-            <h2>Compromissos de Hoje</h2>
-            <div class="empty-state">
-                <p>Integração com Google Calendar em breve</p>
-                <p>Esta página mostrará seus eventos do dia automaticamente</p>
+            <div class="calendar-grid">
+                <div class="calendar-day-header">D</div>
+                <div class="calendar-day-header">S</div>
+                <div class="calendar-day-header">T</div>
+                <div class="calendar-day-header">Q</div>
+                <div class="calendar-day-header">Q</div>
+                <div class="calendar-day-header">S</div>
+                <div class="calendar-day-header">S</div>
+                <div id="calendarDays"></div>
+            </div>
+
+            <div class="week-nav">
+                <button class="week-day-btn" id="btn-0" onclick="selectWeekDay(0)">D 0</button>
+                <button class="week-day-btn" id="btn-1" onclick="selectWeekDay(1)">S 1</button>
+                <button class="week-day-btn" id="btn-2" onclick="selectWeekDay(2)">T 2</button>
+                <button class="week-day-btn" id="btn-3" onclick="selectWeekDay(3)">Q 3</button>
+                <button class="week-day-btn" id="btn-4" onclick="selectWeekDay(4)">Q 4</button>
+                <button class="week-day-btn" id="btn-5" onclick="selectWeekDay(5)">S 5</button>
+                <button class="week-day-btn" id="btn-6" onclick="selectWeekDay(6)">S 6</button>
             </div>
         </div>
+
+        <div class="events-list">
+            <h2 id="selectedDateTitle">Eventos</h2>
+            <div id="eventsContainer">Carregando eventos...</div>
+        </div>
     </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let currentMonth = new Date();
+        let selectedDate = new Date();
+        let allEvents = [];
+
+        // Subtrair 3 horas para corrigir timezone
+        function adjustTime(date) {
+            const adjusted = new Date(date);
+            adjusted.setHours(adjusted.getHours() - 3);
+            return adjusted;
+        }
+
+        selectedDate = adjustTime(selectedDate);
+
+        const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+                           'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const dayNames = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+        async function loadEvents() {
+            try {
+                const response = await fetch(`${API_URL}/api/calendar/events?days=30`);
+                if (response.ok) {
+                    allEvents = await response.json();
+                } else {
+                    allEvents = [];
+                }
+                renderCalendar();
+                displayEventsForDate(selectedDate);
+            } catch (error) {
+                console.error('Erro ao carregar eventos:', error);
+                allEvents = [];
+                renderCalendar();
+                displayEventsForDate(selectedDate);
+            }
+        }
+
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+
+            document.getElementById('monthYear').textContent = `${monthNames[month]} ${year}`;
+
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const prevLastDay = new Date(year, month, 0);
+
+            const firstDayWeek = firstDay.getDay();
+            const lastDate = lastDay.getDate();
+            const prevLastDate = prevLastDay.getDate();
+
+            let days = '';
+
+            // Dias do mês anterior
+            for (let i = firstDayWeek - 1; i >= 0; i--) {
+                days += `<div class="calendar-day other-month">${prevLastDate - i}</div>`;
+            }
+
+            // Dias do mês atual
+            const today = adjustTime(new Date());
+            for (let day = 1; day <= lastDate; day++) {
+                const date = new Date(year, month, day);
+                const isToday = date.toDateString() === today.toDateString();
+                const isSelected = date.toDateString() === selectedDate.toDateString();
+                const hasEvents = allEvents.some(e => {
+                    const eventDate = new Date(e.start.dateTime || e.start.date);
+                    return eventDate.toDateString() === date.toDateString();
+                });
+
+                let className = 'calendar-day';
+                if (isToday) className += ' today';
+                if (isSelected) className += ' selected';
+                if (hasEvents) className += ' has-events';
+
+                days += `<div class="${className}" onclick="selectDate(${year}, ${month}, ${day})">${day}</div>`;
+            }
+
+            // Dias do próximo mês
+            const remainingDays = 7 - ((firstDayWeek + lastDate) % 7);
+            if (remainingDays < 7) {
+                for (let day = 1; day <= remainingDays; day++) {
+                    days += `<div class="calendar-day other-month">${day}</div>`;
+                }
+            }
+
+            document.getElementById('calendarDays').innerHTML = days;
+        }
+
+        function selectDate(year, month, day) {
+            selectedDate = new Date(year, month, day);
+            renderCalendar();
+            displayEventsForDate(selectedDate);
+        }
+
+        function changeMonth(delta) {
+            currentMonth.setMonth(currentMonth.getMonth() + delta);
+            renderCalendar();
+        }
+
+        function goToToday() {
+            const today = adjustTime(new Date());
+            currentMonth = new Date(today);
+            selectedDate = new Date(today);
+            renderCalendar();
+            displayEventsForDate(selectedDate);
+            updateWeekButtons();
+        }
+
+        function selectWeekDay(dayOfWeek) {
+            // Encontrar a próxima ocorrência desse dia da semana na semana atual
+            const today = adjustTime(new Date());
+            const currentDay = today.getDay();
+            let daysToAdd = dayOfWeek - currentDay;
+
+            if (daysToAdd < 0) daysToAdd += 7;
+
+            const targetDate = new Date(today);
+            targetDate.setDate(today.getDate() + daysToAdd);
+
+            currentMonth = new Date(targetDate);
+            selectedDate = new Date(targetDate);
+            renderCalendar();
+            displayEventsForDate(selectedDate);
+            updateWeekButtons();
+        }
+
+        function updateWeekButtons() {
+            // Atualizar números dos dias na semana
+            const today = adjustTime(new Date());
+            const startOfWeek = new Date(today);
+            startOfWeek.setDate(today.getDate() - today.getDay());
+
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(startOfWeek);
+                date.setDate(startOfWeek.getDate() + i);
+                const btn = document.getElementById(`btn-${i}`);
+                const dayLabels = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+                btn.textContent = `${dayLabels[i]} ${date.getDate()}`;
+
+                if (date.toDateString() === selectedDate.toDateString()) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            }
+        }
+
+        function displayEventsForDate(date) {
+            const dateStr = date.toLocaleDateString('pt-BR');
+            const dayName = dayNames[date.getDay()];
+
+            document.getElementById('selectedDateTitle').textContent =
+                `Eventos de ${dayName}, ${dateStr}`;
+
+            const dayEvents = allEvents.filter(event => {
+                const eventDate = new Date(event.start.dateTime || event.start.date);
+                return eventDate.toDateString() === date.toDateString();
+            });
+
+            const container = document.getElementById('eventsContainer');
+
+            if (dayEvents.length === 0) {
+                container.innerHTML = '<p class="empty-state">Nenhum evento para este dia</p>';
+                return;
+            }
+
+            container.innerHTML = dayEvents.map(event => {
+                let timeStr = '';
+                if (event.start.dateTime) {
+                    const start = new Date(event.start.dateTime);
+                    const end = event.end.dateTime ? new Date(event.end.dateTime) : null;
+                    timeStr = start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    if (end) {
+                        timeStr += ' - ' + end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                    }
+                }
+
+                return `
+                    <div class="event-item">
+                        ${timeStr ? `<div class="event-time">${timeStr}</div>` : ''}
+                        <div class="event-title">${event.summary || 'Sem título'}</div>
+                        ${event.description ? `<div style="margin-top: 8px; font-size: 14px; color: #666;">${event.description}</div>` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Inicializar
+        loadEvents();
+        updateWeekButtons();
+    </script>
 </body>
 </html>

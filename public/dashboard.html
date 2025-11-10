@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <title>Calendário – Versão Kindle</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    html,body{height:100%}
+    body{font-family:Arial, sans-serif;background:#fff;color:#000;overflow:hidden}
+
+    /* variáveis dinâmicas */
+    :root{ 
+      --relogio-percent: 70; 
+      --eventos-percent: 30;
+    }
+
+    .viewport{
+      position:relative;
+      width:100vw; height:100vh;
+      display:flex; flex-direction:row;
+      transform-origin:left top;
+    }
+    .viewport.rotated{
+      transform:rotate(90deg) translateY(-100%);
+      width:100vh; height:100vw;
+    }
+
+    /* Proporção dinâmica via variáveis CSS */
+    .secao-relogio{
+      position:relative;
+      flex:0 0 calc(var(--relogio-percent) * 1%);
+      min-width:0;
+      display:flex;
+      flex-direction:column;
+      border-right:2px solid #000;
+      background:#f8f8f8;
+    }
+    .secao-eventos{
+      flex:0 0 calc(var(--eventos-percent) * 1%); 
+      min-width:0; 
+      display:flex; 
+      flex-direction:column;
+      background:#fff;
+    }
+
+    /* Painel de Controles - ancorado na seção do relógio */
+    .painel-controles{
+      position:absolute;
+      top:10px;
+      left:10px;
+      background:rgba(255,255,255,0.98);
+      border:2px solid #000;
+      border-radius:8px;
+      padding:12px;
+      box-shadow:0 4px 16px rgba(0,0,0,0.3);
+      z-index:1000;
+      max-width:340px;
+      transition:all 0.3s ease;
+    }
+    .painel-controles.minimizado{
+      max-width:80px;
+    }
+    .painel-controles.minimizado .conteudo-controles{
+      display:none;
+    }
+    .btn-toggle{
+      background:#333;
+      color:#fff;
+      border:none;
+      padding:8px 14px;
+      cursor:pointer;
+      border-radius:5px;
+      font-size:14px;
+      font-weight:bold;
+      width:100%;
+      margin-bottom:10px;
+    }
+    .painel-controles.minimizado .btn-toggle{
+      margin-bottom:0;
+    }
+    .conteudo-controles{
+      display:block;
+    }
+    .grupo-controle{
+      margin-bottom:12px;
+    }
+    .label-controle{
+      display:block;
+      font-size:11px;
+      font-weight:bold;
+      margin-bottom:4px;
+      color:#333;
+    }
+    .slider-controle{
+      width:100%;
+      height:24px;
+      cursor:pointer;
+    }
+    .valor-controle{
+      display:inline-block;
+      font-weight:bold;
+      color:#000;
+      font-size:12px;
+      margin-left:6px;
+    }
+    .botoes-dia{
+      display:flex;
+      gap:4px;
+    }
+    .btn-dia{
+      flex:1;
+      padding:6px 4px;
+      background:#f0f0f0;
+      border:2px solid #999;
+      border-radius:4px;
+      cursor:pointer;
+      font-size:11px;
+      font-weight:bold;
+      text-align:center;
+    }
+    .btn-dia.ativo{
+      background:#333;
+      color:#fff;
+      border-color:#000;
+    }
+    .btn-girar{
+      width:100%;
+      padding:6px;
+      background:#fff;
+      border:2px solid #333;
+      border-radius:4px;
+      cursor:pointer;
+      font-size:11px;
+      font-weight:bold;
+    }
+    .checkbox-container{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 0;
+    }
+    .checkbox-container input[type="checkbox"]{
+      width:18px;
+      height:18px;
+      cursor:pointer;
+    }
+    .checkbox-container label{
+      cursor:pointer;
+      font-size:12px;
+      font-weight:bold;
+      flex:1;
+    }
+
+    /* Quando eventos está oculto - toda a seção desaparece */
+    .secao-eventos.oculto{
+      display:none !important;
+    }
+
+    /* Quando eventos está oculto, relógio ocupa 100% */
+    .secao-relogio.expandido{
+      flex:1 1 100% !important;
+      border-right:none !important;
+    }
+
+    /* Relógio central */
+    .relogio-wrap{
+      flex:1; 
+      display:flex; 
+      flex-direction:column; 
+      justify-content:center; 
+      align-items:center;
+      padding:20px;
+    }
+    .relogio{
+      font-family:"Courier New", monospace;
+      font-weight:bold;
+      /* tamanho fixo em pixels - igual ao index.html */
+      font-size:120px;
+      line-height:1;
+      margin-bottom:12px;
+      text-align:center;
+      color:#000;
+    }
+    .data{
+      font-size:24px;
+      margin-bottom:6px;
+      text-align:center;
+      color:#333;
+    }
+    .semana{
+      font-size:20px;
+      color:#666;
+      text-align:center;
+    }
+
+    /* Eventos com rolagem */
+    .topo-eventos{
+      display:flex; 
+      align-items:center; 
+      justify-content:center; 
+      padding:8px; 
+      border-bottom:2px solid #000;
+      background:#fff;
+    }
+    .titulo{
+      font-size:24px;
+      font-weight:bold;
+      text-align:center;
+    }
+    .lista{
+      flex:1; 
+      overflow-y:auto; 
+      overflow-x:hidden;
+      padding:8px; 
+      display:flex; 
+      flex-direction:column; 
+      gap:6px;
+    }
+    .evento{
+      border-left:4px solid #999;
+      padding:12px;
+      background:#f5f5f5;
+      font-size:18px;
+      border-radius:4px;
+    }
+    .evento .t{
+      font-weight:bold;
+      margin-bottom:4px;
+      font-size:20px;
+    }
+    .evento .h{
+      color:#555;
+      font-size:16px;
+    }
+    .evento.atual{
+      background:#fff9e6; 
+      border-left-color:#000; 
+      font-weight:bold;
+      box-shadow:0 0 8px rgba(200,160,0,0.3);
+    }
+    .evento.passado{
+      opacity:0.5; 
+      background:#e8e8e8;
+    }
+    .sem{
+      color:#777;
+      text-align:center;
+      padding:20px;
+      font-size:18px;
+    }
+
+    /* Esconde scrollbar mas mantém funcionalidade */
+    .lista::-webkit-scrollbar{
+      width:8px;
+    }
+    .lista::-webkit-scrollbar-track{
+      background:#f0f0f0;
+    }
+    .lista::-webkit-scrollbar-thumb{
+      background:#ccc;
+      border-radius:4px;
+    }
+
+    /* Contador de Próximo Evento */
+    .contador-evento{
+      margin:20px;
+      background:#fff;
+      border:3px solid #000;
+      border-radius:8px;
+      padding:16px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    }
+    .contador-titulo{
+      font-size:18px;
+      font-weight:bold;
+      margin-bottom:8px;
+      color:#000;
+      text-align:center;
+    }
+    .contador-tempo{
+      font-size:32px;
+      font-weight:bold;
+      color:#000;
+      text-align:center;
+      font-family:"Courier New", monospace;
+      margin-bottom:4px;
+    }
+    .contador-label{
+      font-size:14px;
+      color:#666;
+      text-align:center;
+    }
+    .contador-evento.atual{
+      background:#fff9e6;
+      border-color:#ffd700;
+    }
+    .contador-evento.proximo{
+      background:#f0f8ff;
+      border-color:#4682b4;
+    }
+  </style>
+</head>
+<body>
+  <div id="vp" class="viewport rotated">
+    <!-- LADO ESQUERDO: RELÓGIO -->
+    <section class="secao-relogio">
+      <!-- Painel de Controles Flutuante -->
+      <div id="painelControles" class="painel-controles minimizado">
+        <button class="btn-toggle" onclick="toggleControles()">...</button>
+        <div class="conteudo-controles">
+          <div class="grupo-controle">
+            <label class="label-controle">
+              Tamanho do Relógio
+              <span class="valor-controle" id="valorTamanho">120px</span>
+            </label>
+            <input
+              type="range"
+              class="slider-controle"
+              id="sliderTamanho"
+              min="60"
+              max="200"
+              value="120"
+              step="10"
+              oninput="ajustarTamanho(this.value)">
+          </div>
+
+          <div class="grupo-controle">
+            <label class="label-controle">
+              Proporção Relógio/Eventos
+              <span class="valor-controle" id="valorProporcao">70/30</span>
+            </label>
+            <input
+              type="range"
+              class="slider-controle"
+              id="sliderProporcao"
+              min="40"
+              max="85"
+              value="70"
+              step="5"
+              oninput="ajustarProporcao(this.value)">
+          </div>
+
+          <div class="grupo-controle">
+            <label class="label-controle">Selecionar Dia</label>
+            <div class="botoes-dia">
+              <button class="btn-dia" id="btnOntem" onclick="irParaDia(-1)">Ontem</button>
+              <button class="btn-dia ativo" id="btnHoje" onclick="irParaDia(0)">Hoje</button>
+              <button class="btn-dia" id="btnAmanha" onclick="irParaDia(1)">Amanhã</button>
+            </div>
+          </div>
+
+          <div class="grupo-controle">
+            <button class="btn-girar" id="btnRot" onclick="girarTela()">🔄 Girar 90°</button>
+          </div>
+
+          <div class="grupo-controle">
+            <div class="checkbox-container">
+              <input type="checkbox" id="checkMostrarEventos" checked onchange="toggleEventos()">
+              <label for="checkMostrarEventos">Mostrar Eventos</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="relogio-wrap">
+        <div id="relogio" class="relogio">00:00</div>
+        <div id="data" class="data">–</div>
+        <div id="semana" class="semana">–</div>
+      </div>
+
+      <!-- Contador de Próximo Evento -->
+      <div id="contadorEvento" class="contador-evento">
+        <div class="contador-titulo" id="contadorTitulo">—</div>
+        <div class="contador-tempo" id="contadorTempo">—</div>
+        <div class="contador-label" id="contadorLabel">—</div>
+      </div>
+    </section>
+
+    <!-- LADO DIREITO: EVENTOS -->
+    <section class="secao-eventos">
+      <div class="topo-eventos"><div id="titulo" class="titulo">Eventos</div></div>
+      <div id="lista" class="lista"><div class="sem">Carregando…</div></div>
+    </section>
+  </div>
+
+  <script>
+  // ====== CONFIG ======
+  var TIME_OFFSET_MINUTES = -180; // -3h (ajuste conforme seu fuso)
+  
+  // Eventos (serão atualizados pelo script Python)
+  var eventosData = {"2025-11-06":[{"titulo":"Leitura","inicio":"17:15","fim":"18:00"},{"titulo":"Oração","inicio":"18:00","fim":"18:30"},{"titulo":"Terço","inicio":"19:00","fim":"19:30"},{"titulo":"Leitura Espiritual","inicio":"19:30","fim":"19:45"},{"titulo":"Jantar","inicio":"20:00","fim":"21:00"},{"titulo":"Exame","inicio":"21:00","fim":"21:15"},{"titulo":"Ir dormir","inicio":"22:30","fim":"22:30"}],"2025-11-07":[{"titulo":"⭐ Dia de Turno","inicio":"00:00","fim":"23:59"},{"titulo":"Tempo da Manhã","inicio":"05:00","fim":"08:00"},{"titulo":"Leitura Espiritual","inicio":"08:15","fim":"08:30"},{"titulo":"Probabilidade","inicio":"08:30","fim":"12:15"},{"titulo":"Contemplação","inicio":"12:30","fim":"12:40"},{"titulo":"Almoço","inicio":"12:40","fim":"13:30"},{"titulo":"Terço ","inicio":"13:30","fim":"14:15"},{"titulo":"Probabilidade","inicio":"14:15","fim":"18:30"},{"titulo":"Meditação e Pizzada","inicio":"19:30","fim":"22:30"}],"2025-11-08":[{"titulo":"Tempo da Manhã","inicio":"06:00","fim":"08:30"},{"titulo":"Leituras Espirituais","inicio":"08:30","fim":"08:45"},{"titulo":"Probabilidade","inicio":"08:45","fim":"12:30"},{"titulo":"Contemplação","inicio":"12:45","fim":"12:55"},{"titulo":"Almoço","inicio":"13:00","fim":"14:00"},{"titulo":"Probabilidade","inicio":"14:00","fim":"17:45"},{"titulo":"Oração","inicio":"17:45","fim":"18:15"},{"titulo":"Terço","inicio":"19:15","fim":"19:45"},{"titulo":"Jantar","inicio":"19:45","fim":"21:00"},{"titulo":"Exame","inicio":"21:00","fim":"21:15"},{"titulo":"Ir dormir","inicio":"22:30","fim":"22:30"}],"2025-11-09":[{"titulo":"Tempo da Manhã","inicio":"07:00","fim":"09:15"},{"titulo":"Leitura Espiritual","inicio":"09:15","fim":"09:45"},{"titulo":"Contemplação","inicio":"12:45","fim":"12:55"},{"titulo":"Almoço","inicio":"13:00","fim":"14:00"},{"titulo":"Oração","inicio":"17:00","fim":"17:30"},{"titulo":"Circulo","inicio":"19:15","fim":"20:00"},{"titulo":"Jantar","inicio":"20:00","fim":"21:00"},{"titulo":"Exame","inicio":"21:00","fim":"21:15"},{"titulo":"Ir dormir","inicio":"22:30","fim":"22:30"}],"2025-11-10":[{"titulo":"Tempo da Manhã","inicio":"05:00","fim":"08:00"},{"titulo":"Terço","inicio":"08:15","fim":"09:00"},{"titulo":"Monitoria BV - Macro","inicio":"09:00","fim":"10:00"},{"titulo":"Contemplação","inicio":"10:15","fim":"10:25"},{"titulo":"Almoço","inicio":"12:40","fim":"13:30"},{"titulo":"Leitura Espiritual","inicio":"13:45","fim":"14:00"},{"titulo":"Oração","inicio":"16:30","fim":"17:00"},{"titulo":"Conversa Barelli","inicio":"19:15","fim":"20:00"},{"titulo":"Cf Pasin","inicio":"19:30","fim":"20:00"},{"titulo":"Jantar","inicio":"20:00","fim":"21:00"},{"titulo":"Exame","inicio":"21:00","fim":"21:15"},{"titulo":"Ir dormir","inicio":"22:30","fim":"22:30"}],"2025-11-11":[{"titulo":"⭐ Dia de Turno","inicio":"00:00","fim":"23:59"},{"titulo":"Tempo da Manhã","inicio":"05:00","fim":"08:00"},{"titulo":"Contemplação","inicio":"12:30","fim":"12:40"},{"titulo":"Almoço","inicio":"12:40","fim":"13:30"},{"titulo":"Terço ","inicio":"13:30","fim":"14:15"},{"titulo":"Oração","inicio":"16:30","fim":"17:00"},{"titulo":"Leitura Espiritual ","inicio":"19:45","fim":"20:00"},{"titulo":"Jantar","inicio":"20:00","fim":"21:00"},{"titulo":"Exame","inicio":"21:00","fim":"21:15"},{"titulo":"Ir dormir","inicio":"22:30","fim":"22:30"}],"2025-11-12":[{"titulo":"⭐ Dia de Guarda","inicio":"00:00","fim":"23:59"},{"titulo":"Tempo da Manhã","inicio":"05:00","fim":"08:00"},{"titulo":"Terço ","inicio":"08:00","fim":"08:30"},{"titulo":"Tênis de Mesa","inicio":"08:30","fim":"10:00"},{"titulo":"Contemplação","inicio":"10:15","fim":"10:25"},{"titulo":"Almoço","inicio":"12:40","fim":"13:30"},{"titulo":"Leitura Espiritual","inicio":"13:45","fim":"14:00"},{"titulo":"Oração","inicio":"16:30","fim":"17:00"},{"titulo":"Jantar","inicio":"20:00","fim":"21:00"},{"titulo":"Exame","inicio":"21:00","fim":"21:15"},{"titulo":"Ir dormir","inicio":"22:30","fim":"22:30"}],"2025-11-13":[{"titulo":"Tempo da Manhã","inicio":"05:00","fim":"08:00"},{"titulo":"Terço","inicio":"10:00","fim":"10:45"},{"titulo":"Almoço","inicio":"12:40","fim":"13:30"},{"titulo":"Leitura Espiritual","inicio":"13:45","fim":"14:00"},{"titulo":"Monitoria BV - Math 2","inicio":"14:00","fim":"16:00"},{"titulo":"Oração","inicio":"16:30","fim":"17:00"}]};
+
+  // ====== FUNÇÕES AUXILIARES ======
+  function agoraCorrigido(){ 
+    var d = new Date(); 
+    return new Date(d.getTime() + TIME_OFFSET_MINUTES * 60000); 
+  }
+  
+  function ymd(d){
+    var a = d.getFullYear();
+    var m = ('0' + (d.getMonth() + 1)).slice(-2);
+    var dia = ('0' + d.getDate()).slice(-2);
+    return a + '-' + m + '-' + dia;
+  }
+  
+  function minutos(hhmm){
+    var p = hhmm.split(':');
+    var h = parseInt(p[0], 10) || 0;
+    var m = parseInt(p[1], 10) || 0;
+    return h * 60 + m;
+  }
+  
+  var meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var dias = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  
+  var dataSel = agoraCorrigido();
+  var offsetDia = 0; // -1=ontem, 0=hoje, 1=amanhã
+
+  // ====== CONTROLES ======
+  function toggleControles(){
+    var painel = document.getElementById('painelControles');
+
+    if(painel.className.indexOf('minimizado') >= 0){
+      // Expandir
+      painel.className = 'painel-controles';
+      localStorage.setItem('painelAberto', 'true');
+    } else {
+      // Minimizar
+      painel.className = 'painel-controles minimizado';
+      localStorage.setItem('painelAberto', 'false');
+    }
+  }
+
+  function ajustarTamanho(valor){
+    var tamanho = parseInt(valor);
+    document.getElementById('relogio').style.fontSize = tamanho + 'px';
+    document.getElementById('valorTamanho').textContent = tamanho + 'px';
+
+    // Salvar preferência
+    localStorage.setItem('tamanhoRelogio', valor);
+  }
+
+  function ajustarProporcao(valor){
+    var relogioPercent = parseInt(valor);
+    var eventosPercent = 100 - relogioPercent;
+
+    document.documentElement.style.setProperty('--relogio-percent', relogioPercent);
+    document.documentElement.style.setProperty('--eventos-percent', eventosPercent);
+
+    document.getElementById('valorProporcao').textContent = relogioPercent + '/' + eventosPercent;
+
+    // Salvar preferência
+    localStorage.setItem('proporcao', valor);
+  }
+
+  function irParaDia(offset){
+    offsetDia = offset;
+    var agora = agoraCorrigido();
+    dataSel = new Date(agora.getTime() + (offset * 86400000));
+    
+    // Atualizar botões ativos
+    document.getElementById('btnOntem').className = 'btn-dia' + (offset === -1 ? ' ativo' : '');
+    document.getElementById('btnHoje').className = 'btn-dia' + (offset === 0 ? ' ativo' : '');
+    document.getElementById('btnAmanha').className = 'btn-dia' + (offset === 1 ? ' ativo' : '');
+    
+    atualizar();
+  }
+
+  function girarTela(){
+    var vp = document.getElementById('vp');
+
+    if(vp.className.indexOf('rotated') >= 0){
+      vp.className = 'viewport';
+    } else {
+      vp.className = 'viewport rotated';
+    }
+
+    // Salvar preferência
+    localStorage.setItem('rotacao', vp.className);
+  }
+
+  function toggleEventos(){
+    var checkbox = document.getElementById('checkMostrarEventos');
+    var secaoEventos = document.querySelector('.secao-eventos');
+    var secaoRelogio = document.querySelector('.secao-relogio');
+
+    if(checkbox.checked){
+      // Mostrar eventos - relógio menor (130px)
+      secaoEventos.classList.remove('oculto');
+      secaoRelogio.classList.remove('expandido');
+      ajustarTamanho(130);
+      document.getElementById('sliderTamanho').value = 130;
+    } else {
+      // Ocultar eventos - relógio maior (200px)
+      secaoEventos.classList.add('oculto');
+      secaoRelogio.classList.add('expandido');
+      ajustarTamanho(200);
+      document.getElementById('sliderTamanho').value = 200;
+    }
+
+    // Salvar preferência
+    localStorage.setItem('mostrarEventos', checkbox.checked);
+  }
+
+  // ====== DESENHAR INTERFACE ======
+  function desenharHorario(){
+    var n = agoraCorrigido();
+    var h = ('0' + n.getHours()).slice(-2);
+    var m = ('0' + n.getMinutes()).slice(-2);
+    
+    document.getElementById('relogio').innerHTML = h + ':' + m;
+    document.getElementById('data').innerHTML = n.getDate() + ' de ' + meses[n.getMonth()];
+    document.getElementById('semana').innerHTML = dias[n.getDay()];
+  }
+
+  function estadoEvento(evt, baseDate){
+    var n = agoraCorrigido();
+    var isHoje = ymd(n) === ymd(baseDate);
+    
+    if(!isHoje){
+      return baseDate < n ? 'passado' : 'futuro';
+    }
+    
+    var t = n.getHours() * 60 + n.getMinutes();
+    var i = minutos(evt.inicio);
+    var f = minutos(evt.fim);
+    
+    if(t < i) return 'futuro';
+    if(t >= i && t < f) return 'atual';
+    return 'passado';
+  }
+
+  function desenharEventos(){
+    var key = ymd(dataSel);
+    var evts = eventosData[key] || [];
+    
+    var n = agoraCorrigido();
+    var hj = ymd(n);
+    var ont = new Date(n.getTime() - 86400000);
+    var am = new Date(n.getTime() + 86400000);
+    
+    var titulo = 'Eventos de ';
+    if(key === hj){
+      titulo += 'Hoje';
+    } else if(key === ymd(ont)){
+      titulo += 'Ontem';
+    } else if(key === ymd(am)){
+      titulo += 'Amanhã';
+    } else {
+      titulo += dataSel.getDate() + ' de ' + meses[dataSel.getMonth()];
+    }
+    
+    document.getElementById('titulo').innerHTML = titulo;
+    
+    var lista = document.getElementById('lista');
+    if(!evts.length){
+      lista.innerHTML = '<div class="sem">Nenhum evento para este dia</div>';
+      return;
+    }
+    
+    var html = '';
+    for(var i = 0; i < evts.length; i++){
+      var e = evts[i];
+      var st = estadoEvento(e, dataSel);
+      html += '<div class="evento ' + st + '">';
+      html += '<div class="t">' + e.titulo + '</div>';
+      html += '<div class="h">' + e.inicio + ' – ' + e.fim + '</div>';
+      html += '</div>';
+    }
+    lista.innerHTML = html;
+  }
+
+  function atualizarContador(){
+    var key = ymd(dataSel);
+    var evts = eventosData[key] || [];
+    var n = agoraCorrigido();
+    var hj = ymd(n);
+
+    // Filtrar eventos que não têm estrela
+    var eventosValidos = [];
+    for(var i = 0; i < evts.length; i++){
+      if(evts[i].titulo.indexOf('⭐') === -1){
+        eventosValidos.push(evts[i]);
+      }
+    }
+
+    // Só mostrar contador para hoje
+    var contador = document.getElementById('contadorEvento');
+    if(key !== hj || eventosValidos.length === 0){
+      contador.style.display = 'none';
+      return;
+    }
+
+    contador.style.display = 'block';
+    var agora = n.getHours() * 60 + n.getMinutes();
+    var eventoAtual = null;
+    var proximoEvento = null;
+
+    // Procurar evento atual ou próximo (ignorando eventos com estrela)
+    for(var i = 0; i < eventosValidos.length; i++){
+      var e = eventosValidos[i];
+      var inicio = minutos(e.inicio);
+      var fim = minutos(e.fim);
+
+      if(agora >= inicio && agora < fim){
+        eventoAtual = e;
+        break;
+      }
+
+      if(agora < inicio && !proximoEvento){
+        proximoEvento = e;
+      }
+    }
+
+    var titulo = document.getElementById('contadorTitulo');
+    var tempo = document.getElementById('contadorTempo');
+    var label = document.getElementById('contadorLabel');
+
+    if(eventoAtual){
+      // Evento acontecendo agora
+      contador.className = 'contador-evento atual';
+      titulo.textContent = eventoAtual.titulo;
+
+      var fimMin = minutos(eventoAtual.fim);
+      var diff = fimMin - agora;
+
+      if(diff <= 0){
+        tempo.textContent = 'Terminando...';
+        label.textContent = '';
+      } else {
+        var horas = Math.floor(diff / 60);
+        var mins = diff % 60;
+
+        if(horas > 0){
+          tempo.textContent = horas + 'h ' + mins + 'min';
+        } else {
+          tempo.textContent = mins + ' min';
+        }
+        label.textContent = 'para terminar';
+      }
+    } else if(proximoEvento){
+      // Próximo evento
+      contador.className = 'contador-evento proximo';
+      titulo.textContent = proximoEvento.titulo;
+
+      var inicioMin = minutos(proximoEvento.inicio);
+      var diff = inicioMin - agora;
+
+      if(diff <= 0){
+        tempo.textContent = 'Começando...';
+        label.textContent = '';
+      } else {
+        var horas = Math.floor(diff / 60);
+        var mins = diff % 60;
+
+        if(horas > 0){
+          tempo.textContent = horas + 'h ' + mins + 'min';
+        } else {
+          tempo.textContent = mins + ' min';
+        }
+        label.textContent = 'para começar';
+      }
+    } else {
+      // Todos os eventos já passaram
+      contador.style.display = 'none';
+    }
+  }
+
+  function atualizar(){
+    desenharHorario();
+    desenharEventos();
+    atualizarContador();
+  }
+
+  // ====== CARREGAR PREFERÊNCIAS ======
+  function carregarPreferencias(){
+    // Carregar rotação salva da viewport
+    var rotSalva = localStorage.getItem('rotacao');
+    if(rotSalva){
+      document.getElementById('vp').className = rotSalva;
+    }
+
+    // Carregar estado do painel
+    var painelAberto = localStorage.getItem('painelAberto');
+    if(painelAberto === 'true'){
+      document.getElementById('painelControles').className = 'painel-controles';
+    }
+
+    // Carregar proporção salva
+    var propSalva = localStorage.getItem('proporcao');
+    if(propSalva){
+      document.getElementById('sliderProporcao').value = propSalva;
+      ajustarProporcao(propSalva);
+    }
+
+    // Carregar estado de mostrar eventos
+    var mostrarEventos = localStorage.getItem('mostrarEventos');
+    if(mostrarEventos === 'false'){
+      document.getElementById('checkMostrarEventos').checked = false;
+      document.querySelector('.secao-eventos').classList.add('oculto');
+      document.querySelector('.secao-relogio').classList.add('expandido');
+      // Ajustar relógio para 200px quando eventos ocultos
+      ajustarTamanho(200);
+      document.getElementById('sliderTamanho').value = 200;
+    } else {
+      // Ajustar relógio para 130px quando eventos visíveis
+      ajustarTamanho(130);
+      document.getElementById('sliderTamanho').value = 130;
+    }
+
+    // Carregar tamanho do relógio salvo (se existir, sobrescreve o padrão acima)
+    var tamanhoSalvo = localStorage.getItem('tamanhoRelogio');
+    if(tamanhoSalvo){
+      document.getElementById('sliderTamanho').value = tamanhoSalvo;
+      ajustarTamanho(tamanhoSalvo);
+    }
+  }
+
+  // ====== INICIALIZAÇÃO ======
+  carregarPreferencias();
+  atualizar();
+
+  // Atualizar a cada minuto
+  setInterval(atualizar, 60000);
+
+  // Atualizar contador a cada 30 segundos para contagem mais precisa
+  setInterval(atualizarContador, 30000);
+  </script>
+</body>
+</html>
