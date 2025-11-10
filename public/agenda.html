@@ -49,20 +49,20 @@
         .calendar-day-header {
             text-align: center;
             font-weight: bold;
-            padding: 8px;
+            padding: 6px;
             background: #f0f0f0;
             border: 1px solid #000;
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .calendar-day {
             text-align: center;
-            padding: 10px;
+            padding: 6px;
             border: 1px solid #ccc;
             cursor: pointer;
-            min-height: 40px;
+            min-height: 30px;
             background: #fff;
-            font-size: 16px;
+            font-size: 13px;
         }
 
         .calendar-day:hover {
@@ -151,16 +151,7 @@
                 </div>
             </div>
 
-            <div class="calendar-grid">
-                <div class="calendar-day-header">D</div>
-                <div class="calendar-day-header">S</div>
-                <div class="calendar-day-header">T</div>
-                <div class="calendar-day-header">Q</div>
-                <div class="calendar-day-header">Q</div>
-                <div class="calendar-day-header">S</div>
-                <div class="calendar-day-header">S</div>
-                <div id="calendarDays"></div>
-            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
 
             <div class="week-nav">
                 <button class="week-day-btn" id="btn-0" onclick="selectWeekDay(0)">D 0</button>
@@ -230,11 +221,17 @@
             const lastDate = lastDay.getDate();
             const prevLastDate = prevLastDay.getDate();
 
-            let days = '';
+            let html = '';
+
+            // Cabeçalhos dos dias da semana
+            const dayHeaders = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+            dayHeaders.forEach(day => {
+                html += `<div class="calendar-day-header">${day}</div>`;
+            });
 
             // Dias do mês anterior
             for (let i = firstDayWeek - 1; i >= 0; i--) {
-                days += `<div class="calendar-day other-month">${prevLastDate - i}</div>`;
+                html += `<div class="calendar-day other-month">${prevLastDate - i}</div>`;
             }
 
             // Dias do mês atual
@@ -253,18 +250,18 @@
                 if (isSelected) className += ' selected';
                 if (hasEvents) className += ' has-events';
 
-                days += `<div class="${className}" onclick="selectDate(${year}, ${month}, ${day})">${day}</div>`;
+                html += `<div class="${className}" onclick="selectDate(${year}, ${month}, ${day})">${day}</div>`;
             }
 
             // Dias do próximo mês
             const remainingDays = 7 - ((firstDayWeek + lastDate) % 7);
             if (remainingDays < 7) {
                 for (let day = 1; day <= remainingDays; day++) {
-                    days += `<div class="calendar-day other-month">${day}</div>`;
+                    html += `<div class="calendar-day other-month">${day}</div>`;
                 }
             }
 
-            document.getElementById('calendarDays').innerHTML = days;
+            document.getElementById('calendarGrid').innerHTML = html;
         }
 
         function selectDate(year, month, day) {

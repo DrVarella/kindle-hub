@@ -5,6 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Plano Inclinado - Hub Kindle</title>
     <link rel="stylesheet" href="style.css">
+    <style>
+        .habits-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #000;
+            background: #fff;
+        }
+
+        .habits-section h2 {
+            font-size: 22px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 8px;
+        }
+
+        .habit-item {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .habit-item:last-child {
+            border-bottom: none;
+        }
+
+        .habit-checkbox {
+            width: 20px;
+            height: 20px;
+            margin-right: 12px;
+            cursor: pointer;
+        }
+
+        .habit-label {
+            font-size: 16px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .habit-item.completed .habit-label {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .reset-btn {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: #fff;
+            border: 2px solid #000;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .reset-btn:hover {
+            background: #f0f0f0;
+        }
+    </style>
 </head>
 <body>
     <div class="page-container">
@@ -13,182 +70,136 @@
             <a href="index.html" class="back-link">Voltar ao Início</a>
         </div>
 
-        <div class="form-section">
-            <h2>Registrar Hábito do Dia</h2>
-            <form id="habitForm">
-                <div class="form-group">
-                    <label for="habitName">Nome do Hábito:</label>
-                    <input type="text" id="habitName" required placeholder="Ex: Exercício, Leitura, Meditação">
-                </div>
-                <div class="form-group">
-                    <label for="habitDate">Data:</label>
-                    <input type="date" id="habitDate" required>
-                </div>
-                <button type="submit" class="btn btn-primary">Adicionar Hábito</button>
-            </form>
+        <div class="habits-section">
+            <h2>Normas de Hoje</h2>
+            <div id="dailyHabits"></div>
+            <button class="reset-btn" onclick="resetDaily()">Resetar Diárias</button>
         </div>
 
-        <div class="list-section">
-            <h2>Hábitos de Hoje</h2>
-            <div id="todayHabits" class="loading">Carregando...</div>
-        </div>
-
-        <div class="list-section">
-            <h2>Histórico de Hábitos</h2>
-            <div id="allHabits" class="loading">Carregando...</div>
+        <div class="habits-section">
+            <h2>Hábitos Semanais</h2>
+            <div id="weeklyHabits"></div>
+            <button class="reset-btn" onclick="resetWeekly()">Resetar Semanais</button>
         </div>
     </div>
 
     <script>
-        const API_URL = window.location.origin;
+        // Hábitos diários fixos
+        const dailyHabits = [
+            'Serviam',
+            'Preces',
+            'Oração da manhã',
+            'Santa Missa',
+            'Leitura Espiritual',
+            'Leitura do NT',
+            'Angelus',
+            'Visita ao Santíssimo',
+            'Lembrai-vos',
+            'Terço',
+            'Oração da Tarde',
+            'Exame',
+            '2 horas',
+            '3 Ave Marias'
+        ];
 
-        // Configurar data de hoje como padrão
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('habitDate').value = today;
+        // Hábitos semanais fixos
+        const weeklyHabits = [
+            'Recolhimento',
+            'Disciplina',
+            'Confissão',
+            'Sábado'
+        ];
 
-        // Carregar hábitos de hoje
-        async function loadTodayHabits() {
-            try {
-                const response = await fetch(`${API_URL}/api/habits/today`);
-                const habits = await response.json();
-                displayTodayHabits(habits);
-            } catch (error) {
-                document.getElementById('todayHabits').innerHTML = '<p class="message error">Erro ao carregar hábitos</p>';
-            }
+        // Carregar estado do localStorage
+        function loadState() {
+            const dailyState = JSON.parse(localStorage.getItem('dailyHabitsState') || '{}');
+            const weeklyState = JSON.parse(localStorage.getItem('weeklyHabitsState') || '{}');
+            return { dailyState, weeklyState };
         }
 
-        // Carregar todos os hábitos
-        async function loadAllHabits() {
-            try {
-                const response = await fetch(`${API_URL}/api/habits`);
-                const habits = await response.json();
-                displayAllHabits(habits);
-            } catch (error) {
-                document.getElementById('allHabits').innerHTML = '<p class="message error">Erro ao carregar histórico</p>';
-            }
+        // Salvar estado no localStorage
+        function saveState(dailyState, weeklyState) {
+            localStorage.setItem('dailyHabitsState', JSON.stringify(dailyState));
+            localStorage.setItem('weeklyHabitsState', JSON.stringify(weeklyState));
         }
 
-        // Exibir hábitos de hoje
-        function displayTodayHabits(habits) {
-            const container = document.getElementById('todayHabits');
-            
-            if (habits.length === 0) {
-                container.innerHTML = '<p class="empty-state">Nenhum hábito registrado hoje</p>';
-                return;
-            }
+        // Renderizar hábitos diários
+        function renderDaily() {
+            const { dailyState } = loadState();
+            const container = document.getElementById('dailyHabits');
 
-            container.innerHTML = habits.map(habit => `
-                <div class="item ${habit.completed ? 'completed' : ''}">
-                    <div class="item-title">${habit.name}</div>
-                    <div class="item-meta">Data: ${formatDate(habit.date)}</div>
-                    <div class="item-actions">
-                        <button class="btn-small" onclick="toggleHabit(${habit.id}, ${habit.completed ? 0 : 1})">
-                            ${habit.completed ? 'Desmarcar' : 'Concluir'}
-                        </button>
-                        <button class="btn-small" onclick="deleteHabit(${habit.id})">Excluir</button>
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        // Exibir todos os hábitos
-        function displayAllHabits(habits) {
-            const container = document.getElementById('allHabits');
-            
-            if (habits.length === 0) {
-                container.innerHTML = '<p class="empty-state">Nenhum hábito cadastrado</p>';
-                return;
-            }
-
-            // Agrupar por data
-            const grouped = {};
-            habits.forEach(habit => {
-                if (!grouped[habit.date]) {
-                    grouped[habit.date] = [];
-                }
-                grouped[habit.date].push(habit);
-            });
-
-            let html = '';
-            Object.keys(grouped).sort().reverse().forEach(date => {
-                const dateHabits = grouped[date];
-                const completed = dateHabits.filter(h => h.completed).length;
-                const total = dateHabits.length;
-                
-                html += `
-                    <div class="item">
-                        <div class="item-title">${formatDate(date)}</div>
-                        <div class="item-content">
-                            Concluídos: ${completed}/${total}<br>
-                            ${dateHabits.map(h => `${h.completed ? '✓' : '○'} ${h.name}`).join('<br>')}
-                        </div>
+            container.innerHTML = dailyHabits.map((habit, index) => {
+                const isChecked = dailyState[habit] || false;
+                return `
+                    <div class="habit-item ${isChecked ? 'completed' : ''}">
+                        <input type="checkbox"
+                               class="habit-checkbox"
+                               id="daily-${index}"
+                               ${isChecked ? 'checked' : ''}
+                               onchange="toggleDaily('${habit}', this.checked)">
+                        <label class="habit-label" for="daily-${index}">${habit}</label>
                     </div>
                 `;
-            });
-
-            container.innerHTML = html;
+            }).join('');
         }
 
-        // Adicionar novo hábito
-        document.getElementById('habitForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const name = document.getElementById('habitName').value;
-            const date = document.getElementById('habitDate').value;
+        // Renderizar hábitos semanais
+        function renderWeekly() {
+            const { weeklyState } = loadState();
+            const container = document.getElementById('weeklyHabits');
 
-            try {
-                await fetch(`${API_URL}/api/habits`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, date })
-                });
-
-                document.getElementById('habitName').value = '';
-                loadTodayHabits();
-                loadAllHabits();
-            } catch (error) {
-                alert('Erro ao adicionar hábito');
-            }
-        });
-
-        // Marcar/desmarcar hábito
-        async function toggleHabit(id, completed) {
-            try {
-                await fetch(`${API_URL}/api/habits/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ completed })
-                });
-                loadTodayHabits();
-                loadAllHabits();
-            } catch (error) {
-                alert('Erro ao atualizar hábito');
-            }
+            container.innerHTML = weeklyHabits.map((habit, index) => {
+                const isChecked = weeklyState[habit] || false;
+                return `
+                    <div class="habit-item ${isChecked ? 'completed' : ''}">
+                        <input type="checkbox"
+                               class="habit-checkbox"
+                               id="weekly-${index}"
+                               ${isChecked ? 'checked' : ''}
+                               onchange="toggleWeekly('${habit}', this.checked)">
+                        <label class="habit-label" for="weekly-${index}">${habit}</label>
+                    </div>
+                `;
+            }).join('');
         }
 
-        // Excluir hábito
-        async function deleteHabit(id) {
-            if (confirm('Deseja realmente excluir este hábito?')) {
-                try {
-                    await fetch(`${API_URL}/api/habits/${id}`, { method: 'DELETE' });
-                    loadTodayHabits();
-                    loadAllHabits();
-                } catch (error) {
-                    alert('Erro ao excluir hábito');
-                }
+        // Toggle hábito diário
+        function toggleDaily(habit, checked) {
+            const { dailyState, weeklyState } = loadState();
+            dailyState[habit] = checked;
+            saveState(dailyState, weeklyState);
+            renderDaily();
+        }
+
+        // Toggle hábito semanal
+        function toggleWeekly(habit, checked) {
+            const { dailyState, weeklyState } = loadState();
+            weeklyState[habit] = checked;
+            saveState(dailyState, weeklyState);
+            renderWeekly();
+        }
+
+        // Resetar hábitos diários
+        function resetDaily() {
+            if (confirm('Deseja resetar todos os hábitos diários?')) {
+                const { weeklyState } = loadState();
+                saveState({}, weeklyState);
+                renderDaily();
             }
         }
 
-        // Formatar data
-        function formatDate(dateString) {
-            const date = new Date(dateString + 'T00:00:00');
-            const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            return `${days[date.getDay()]}, ${date.toLocaleDateString('pt-BR')}`;
+        // Resetar hábitos semanais
+        function resetWeekly() {
+            if (confirm('Deseja resetar todos os hábitos semanais?')) {
+                const { dailyState } = loadState();
+                saveState(dailyState, {});
+                renderWeekly();
+            }
         }
 
-        // Carregar ao iniciar
-        loadTodayHabits();
-        loadAllHabits();
+        // Inicializar
+        renderDaily();
+        renderWeekly();
     </script>
 </body>
 </html>

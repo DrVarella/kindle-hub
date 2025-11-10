@@ -41,14 +41,6 @@ const db = new Database('database.db');
 
 // Criar tabelas
 db.exec(`
-  CREATE TABLE IF NOT EXISTS habits (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    date TEXT NOT NULL,
-    completed INTEGER DEFAULT 0,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-  );
-
   CREATE TABLE IF NOT EXISTS tasks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     title TEXT NOT NULL,
@@ -58,46 +50,7 @@ db.exec(`
     due_date TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
-
-  CREATE TABLE IF NOT EXISTS prayers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    text TEXT NOT NULL,
-    category TEXT,
-    created_at TEXT DEFAULT CURRENT_TIMESTAMP
-  );
 `);
-
-// ============= ROTAS DE HÁBITOS =============
-app.get('/api/habits', (req, res) => {
-  const habits = db.prepare('SELECT * FROM habits ORDER BY date DESC, name').all();
-  res.json(habits);
-});
-
-app.get('/api/habits/today', (req, res) => {
-  const today = new Date().toISOString().split('T')[0];
-  const habits = db.prepare('SELECT * FROM habits WHERE date = ?').all(today);
-  res.json(habits);
-});
-
-app.post('/api/habits', (req, res) => {
-  const { name, date } = req.body;
-  const result = db.prepare('INSERT INTO habits (name, date) VALUES (?, ?)').run(name, date || new Date().toISOString().split('T')[0]);
-  res.json({ id: result.lastInsertRowid, name, date });
-});
-
-app.put('/api/habits/:id', (req, res) => {
-  const { id } = req.params;
-  const { completed } = req.body;
-  db.prepare('UPDATE habits SET completed = ? WHERE id = ?').run(completed, id);
-  res.json({ success: true });
-});
-
-app.delete('/api/habits/:id', (req, res) => {
-  const { id } = req.params;
-  db.prepare('DELETE FROM habits WHERE id = ?').run(id);
-  res.json({ success: true });
-});
 
 // ============= ROTAS DE TAREFAS =============
 app.get('/api/tasks', (req, res) => {
@@ -128,24 +81,6 @@ app.put('/api/tasks/:id', (req, res) => {
 app.delete('/api/tasks/:id', (req, res) => {
   const { id } = req.params;
   db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
-  res.json({ success: true });
-});
-
-// ============= ROTAS DE ORAÇÕES =============
-app.get('/api/prayers', (req, res) => {
-  const prayers = db.prepare('SELECT * FROM prayers ORDER BY category, name').all();
-  res.json(prayers);
-});
-
-app.post('/api/prayers', (req, res) => {
-  const { name, text, category } = req.body;
-  const result = db.prepare('INSERT INTO prayers (name, text, category) VALUES (?, ?, ?)').run(name, text, category);
-  res.json({ id: result.lastInsertRowid, name });
-});
-
-app.delete('/api/prayers/:id', (req, res) => {
-  const { id } = req.params;
-  db.prepare('DELETE FROM prayers WHERE id = ?').run(id);
   res.json({ success: true });
 });
 
