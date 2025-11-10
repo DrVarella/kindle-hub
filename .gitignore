@@ -10,3 +10,6 @@ ms-token.txt
 *.db
 *.sqlite
 *.sqlite3
+RAILWAY_VALUES.txt
+client_secret_*.json
+*.json:Zone.Identifier
