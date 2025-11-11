@@ -52,13 +52,51 @@
         .cinza {
             color: #666;
         }
+
+        /* Botão Voltar ao Topo */
+        #btnVoltarTopo {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            background: #000;
+            color: #fff;
+            border: none;
+            border-radius: 50%;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease, background 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #btnVoltarTopo.visivel {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        #btnVoltarTopo:hover {
+            background: #333;
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+        }
+
+        #btnVoltarTopo:active {
+            transform: scale(0.95);
+        }
     </style>
 </head>
 <body>
     <div class="page-container">
         <div class="header">
-            <h1>AG</h1>
-            <a href="plano-inclinado.html" class="back-link">Voltar ao Plano Inclinado</a>
+            <h1>Ação de Graças</h1>
+            <a href="plano-inclinado.html" class="back-link">Voltar</a>
         </div>
 
         <div class="ag-container">
@@ -217,7 +255,7 @@
 
             <hr>
 
-            <p><strong>Pela igreja e sua necessidade:</strong></p>
+            <h2><strong>Pela igreja e sua necessidade:</strong></h2>
             <p>Pelo Santo Padre Papa Leão XIV</p>
             <p>Pelo Dom Odilo</p>
             <p>Pelo Dom Orlando</p>
@@ -227,12 +265,12 @@
             <p>Pelo Pe. Luciano</p>
             <p>Pelo Cardeal Robert Sarah</p>
 
-            <p><strong>Agradecimentos</strong></p>
+            <h3><strong>Agradecimentos</strong></h3>
             <p>Pela minha vocação</p>
             <p>Pela minha família</p>
             <p>Por mais este dia de luta e conversão</p>
 
-            <p><strong>Petições:</strong></p>
+            <h3><strong>Petições:</strong></h3>
             <p>Canonização de Dom Álvaro</p>
             <p>Peço por mais vocações para sua Obra</p>
             <p>Pelos estatudos</p>
@@ -244,7 +282,7 @@
             <p>Fim das Guerras</p>
             <p>Peço o que te peça o Padre</p>
 
-            <p><strong>Lembrar todos os dias:</strong></p>
+            <h3><strong>Lembrar todos os dias:</strong></h3>
             <p>Espirito Santo, quando não entender algo me ajude encontrar o caminho.</p>
             <p>Nossa Senhora, me ajuda a entender o que vou estudar hoje!</p>
             <p>Meu Anjo da guarda, não me deixe cair em distrações.</p>
@@ -253,5 +291,30 @@
             <p>Faz-me humildade, faz-me puro, faz-me Santo!</p>
         </div>
     </div>
+
+    <!-- Botão Voltar ao Topo -->
+    <button id="btnVoltarTopo" title="Voltar ao topo">↑</button>
+
+    <script>
+        // Controle do botão "Voltar ao Topo"
+        const btnVoltarTopo = document.getElementById('btnVoltarTopo');
+
+        // Mostrar/ocultar botão baseado na posição do scroll
+        window.addEventListener('scroll', function() {
+            if (window.pageYOffset > 300) {
+                btnVoltarTopo.classList.add('visivel');
+            } else {
+                btnVoltarTopo.classList.remove('visivel');
+            }
+        });
+
+        // Rolar suavemente ao topo ao clicar
+        btnVoltarTopo.addEventListener('click', function() {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    </script>
 </body>
 </html>

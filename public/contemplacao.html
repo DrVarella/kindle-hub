@@ -162,6 +162,9 @@
                     <button class="nav-btn" onclick="anterior()">◄</button>
                     <button class="nav-btn" onclick="proximo()">►</button>
                 </div>
+
+                <!-- Container para o texto da meditação -->
+                <div id="textoMisterio" style="width: 100%; max-width: 700px; margin-top: 20px;"></div>
             </div>
         </div>
     </div>
@@ -172,46 +175,55 @@
         let imagens = [];
         let imagensPreCarregadas = {}; // Cache de imagens pré-carregadas
         let imagensCarregando = new Set(); // Controle de imagens em carregamento
+        let textosCarregados = {}; // Cache para textos das meditações
+
+        // Mapeamento dos mistérios para IDs da API do Escriba.org
+        const mapeamentoMisteriosAPI = {
+            gozosos: [141, 142, 143, 144, 145],      // IDs 141-145
+            dolorosos: [146, 147, 148, 149, 150],    // IDs 146-150
+            gloriosos: [151, 152, 153, 154, 155],    // IDs 151-155
+            luminosos: [619, 620, 621, 622, 623]     // IDs 619-623
+        };
 
         const misterios = {
             gozosos: {
                 nome: 'Mistérios Gozosos',
                 titulos: [
-                    'Anunciação do Anjo a Maria',
-                    'Visitação de Maria a Isabel',
+                    'A Anunciação',
+                    'Visitação de Nossa Senhora',
                     'Nascimento de Jesus',
-                    'Apresentação de Jesus no Templo',
-                    'Encontro de Jesus no Templo'
+                    'Purificação de Nossa Senhora',
+                    'O Menino Perdido'
                 ]
             },
             dolorosos: {
                 nome: 'Mistérios Dolorosos',
                 titulos: [
-                    'Agonia de Jesus no Horto',
-                    'Flagelação de Jesus',
+                    'Oração no Horto',
+                    'Flagelação de Senhor',
                     'Coroação de Espinhos',
-                    'Jesus carrega a Cruz',
-                    'Crucificação e Morte de Jesus'
+                    'A Cruz às Costas',
+                    'Morte de Jesus'
                 ]
             },
             gloriosos: {
                 nome: 'Mistérios Gloriosos',
                 titulos: [
-                    'Ressurreição de Jesus',
-                    'Ascensão de Jesus ao Céu',
-                    'Vinda do Espírito Santo',
-                    'Assunção de Maria',
-                    'Coroação de Maria'
+                    'Ressurreição de Senhor',
+                    'Ascensão do Senhor',
+                    'Pentecostes',
+                    'Assunção de Nossa Senhora',
+                    'Coroação de Nossa Senhora'
                 ]
             },
             luminosos: {
                 nome: 'Mistérios Luminosos',
                 titulos: [
-                    'Batismo de Jesus no Jordão',
-                    'Bodas de Caná',
-                    'Anúncio do Reino de Deus',
-                    'Transfiguração de Jesus',
-                    'Instituição da Eucaristia'
+                    'Batismo do Senhor',
+                    'As Bodas de Caná',
+                    'O Anúncio do Reino',
+                    'A Transfiguração',
+                    'A Instituição da Eucaristia'
                 ]
             }
         };
@@ -307,6 +319,49 @@
             preCarregarImagem(imagens[anteriorIndice]);
         }
 
+        // Função para carregar texto da meditação da API do Escriba.org
+        async function carregarTextoMisterio(tipo, indice) {
+            const chave = `${tipo}-${indice}`;
+
+            // Se já está em cache, retornar
+            if (textosCarregados[chave]) {
+                return textosCarregados[chave];
+            }
+
+            try {
+                // Obter o ID do mistério diretamente do mapeamento
+                const misterioId = mapeamentoMisteriosAPI[tipo][indice];
+
+                // Buscar o mistério específico pelo ID
+                const response = await fetch(`https://escriva.org/api/v1/mysteries/${misterioId}/`);
+
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                // Armazenar em cache
+                textosCarregados[chave] = data.text || 'Texto não disponível';
+                return textosCarregados[chave];
+
+            } catch (error) {
+                console.error('Erro ao carregar texto do mistério:', error);
+                return `Erro ao carregar texto: ${error.message}`;
+            }
+        }
+
+        // Função para exibir o texto da meditação
+        async function exibirTextoMisterio() {
+            const containerTexto = document.getElementById('textoMisterio');
+            if (!containerTexto) return;
+
+            containerTexto.innerHTML = '<div style="color: #666; font-style: italic; padding: 15px;">Carregando meditação...</div>';
+
+            const texto = await carregarTextoMisterio(misterioAtual, indiceAtual);
+            containerTexto.innerHTML = `<div style="padding: 15px; background: #f9f9f9; border: 2px solid #ddd; border-radius: 8px; line-height: 1.6; text-align: justify;">${texto}</div>`;
+        }
+
         function exibirImagem() {
             const container = document.getElementById('imagemAtual');
             const info = document.getElementById('imagemInfo');
@@ -350,6 +405,9 @@
             }
 
             salvarPreferencias();
+
+            // Carregar e exibir o texto da meditação
+            exibirTextoMisterio();
         }
 
         function selecionarMisterio(tipo) {
