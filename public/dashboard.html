@@ -410,7 +410,275 @@
     label[for="checkMostrarEventos"]{
       display:none !important;
     }
+
+    /* ===== TIMER STYLES ===== */
+    .timer-mode-toggle {
+      display: flex;
+      gap: 16px;
+      margin-bottom:1px;
+    }
+    .btn-mode {
+      flex: 1;
+      padding: 6px;
+      background: #fff;
+      border: 2px solid #000;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 13px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    .btn-mode.active {
+      background: #000;
+      color: #fff;
+    }
+    .btn-mode:hover {
+      background: #f0f0f0;
+    }
+    .btn-mode.active:hover {
+      background: #333;
+    }
+
+    /* Classe genérica para esconder elementos */
+    .hidden {
+      display: none !important;
+    }
+
+    /* Containers de Display (Relógio ou Timer) */
+    .display-container {
+      display: block;
+    }
+    .display-container.hidden {
+      display: none;
+    }
+
+    /* Container do Timer Circular - ÁREA PRINCIPAL */
+    .timer-container-main {
+      position: relative;
+      width: 300px;
+      height: 300px;
+      margin: 15px auto;
+    }
+
+    /* SVG Circle com barras */
+    .timer-circle {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg); /* Inicia no topo */
+    }
+    .timer-bar {
+      transition: opacity 0.3s ease; /* Animação suave */
+    }
+    .timer-bar.hidden {
+      opacity: 0;
+    }
+
+    /* Display Central - ÁREA PRINCIPAL */
+    .timer-display-main {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 48px;
+      font-weight: bold;
+      color: #000;
+      pointer-events: none;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* Botões de Preset - ÁREA PRINCIPAL */
+    .preset-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin: 10px auto;
+      max-width: 400px;
+      transition: opacity 0.3s ease;
+    }
+    .preset-buttons.hidden {
+      display: none;
+    }
+    .btn-preset {
+      padding: 10px;
+      background: #e8e8e8;
+      border: 3px solid #000;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 20px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-preset:hover {
+      background: #f0f0f0;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .btn-preset:active {
+      background: #e0e0e0;
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    /* Input Manual - ÁREA PRINCIPAL */
+    .manual-input {
+      display: flex;
+      gap: 12px;
+      margin: 20px auto;
+      max-width: 400px;
+      transition: opacity 0.3s ease;
+    }
+    .manual-input.hidden {
+      display: none;
+    }
+    .manual-input input {
+      flex: 1;
+      padding: 12px;
+      border: 3px solid #000;
+      font-size: 14px;
+      border-radius: 6px;
+      font-family: Arial, sans-serif;
+    }
+    .manual-input input:focus {
+      outline: none;
+      border-color: #333;
+      box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+    }
+    .btn-start-custom {
+      padding: 12px 24px;
+      background: #000;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 14px;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+    }
+    .btn-start-custom:hover {
+      background: #333;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+    .btn-start-custom:active {
+      background: #555;
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    /* Controles Play/Pause/Stop - ÁREA PRINCIPAL */
+    .timer-controls {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      margin: 10px auto;
+      transition: opacity 0.3s ease;
+    }
+    .timer-controls.hidden {
+      display: none;
+    }
+    .btn-control {
+      width: 60px;
+      height: 60px;
+      background: #fff;
+      border: 3px solid #000;
+      cursor: pointer;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 50%;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .btn-control:hover {
+      background: #f0f0f0;
+      transform: scale(1.1);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+    .btn-control:active {
+      background: #e0e0e0;
+      transform: scale(0.95);
+      box-shadow: none;
+    }
+
+    /* Widget no canto superior direito (outras páginas) - definido aqui também para consistência */
+    .timer-widget {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      background: rgba(255, 255, 255, 0.98);
+      border: 2px solid #000;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: bold;
+      z-index: 9999;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Modal de Notificação */
+    .timer-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 99999;
+    }
+    .timer-modal-content {
+      background: #fff;
+      border: 4px solid #000;
+      padding: 40px;
+      text-align: center;
+      max-width: 400px;
+      border-radius: 8px;
+      animation: modalFadeIn 0.3s ease;
+    }
+    @keyframes modalFadeIn {
+      from {
+        opacity: 0;
+        transform: scale(0.9);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    .timer-modal-title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      color: #000;
+    }
+    .timer-modal-btn {
+      padding: 14px 40px;
+      background: #000;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      font-weight: bold;
+      border-radius: 6px;
+      margin-top: 10px;
+      transition: all 0.2s ease;
+    }
+    .timer-modal-btn:hover {
+      background: #333;
+      transform: scale(1.05);
+    }
+    .timer-modal-btn:active {
+      background: #555;
+      transform: scale(0.98);
+    }
   </style>
+  <script src="timer.js"></script>
 </head>
 <body>
   <div id="vp" class="viewport rotated">
@@ -484,20 +752,67 @@
               <label for="checkMostrarEventos">Mostrar Eventos</label>
             </div>
           </div>
+
+          <!-- Timer/Relógio Toggle -->
+          <div class="grupo-controle">
+            <label class="label-controle">Exibir</label>
+            <div class="timer-mode-toggle">
+              <button id="btnModeClock" class="btn-mode active" onclick="setDisplayMode('clock')">Relógio</button>
+              <button id="btnModeTimer" class="btn-mode" onclick="setDisplayMode('timer')">Timer</button>
+            </div>
+          </div>
             </div>
           </details>
         </div>
       </div>
 
       <div class="relogio-wrap">
-        <div class="data-semana-linha">
+        <div class="data-semana-linha" id="dataSemanaLinha">
           <div id="data" class="data">–</div>
           <div id="semana" class="semana">–</div>
         </div>
-        <div id="relogio" class="relogio">00:00</div>
+
+        <!-- RELÓGIO PRINCIPAL -->
+        <div id="relogioContainer" class="display-container">
+          <div id="relogio" class="relogio">00:00</div>
+        </div>
+
+        <!-- TIMER PRINCIPAL (escondido por padrão) -->
+        <div id="timerMainContainer" class="display-container hidden">
+          <!-- Timer Circular (60 barras radiais) -->
+          <div class="timer-container-main">
+            <svg class="timer-circle" viewBox="0 0 200 200">
+              <!-- Barras geradas via JS -->
+            </svg>
+            <!-- Display Central HH:MM -->
+            <div class="timer-display-main" id="timerDisplay">00:00</div>
+          </div>
+
+          <!-- Preset Buttons (aparecem quando timer parado) -->
+          <div id="presetButtons" class="preset-buttons">
+            <button class="btn-preset" onclick="startPreset('5min')">5 min</button>
+            <button class="btn-preset" onclick="startPreset('10min')">10 min</button>
+            <button class="btn-preset" onclick="startPreset('30min')">30 min</button>
+            <button class="btn-preset" onclick="startPreset('2h')">2 horas</button>
+          </div>
+
+          <!-- Input Manual -->
+          <div id="manualInput" class="manual-input">
+            <input type="number" id="customMinutes" placeholder="Minutos" min="1" max="999">
+            <button id="btnStartCustom" class="btn-start-custom" onclick="startCustomTimer()">Iniciar</button>
+          </div>
+
+          <!-- Controles (aparecem quando timer ativo) -->
+          <div id="timerControls" class="timer-controls hidden">
+            <button id="btnPlayPause" class="btn-control" onclick="togglePlayPause()">▶</button>
+            <button id="btnStop" class="btn-control" onclick="stopTimerUI()">■</button>
+          </div>
+        </div>
 
         <!-- Widget de Previsão do Tempo -->
-        <div id="ww_024836fa03d7b" v='1.3' loc='id' a='{"t":"horizontal","lang":"pt","sl_lpl":1,"ids":["wl1583"],"font":"Arial","sl_ics":"one","sl_sot":"celsius","cl_bkg":"#FFFFFF00","cl_font":"rgba(31,27,27,1)","cl_cloud":"rgba(81,77,77,1)","cl_persp":"rgba(0,0,0,1)","cl_sun":"rgba(30,29,26,1)","cl_moon":"rgba(40,38,34,1)","cl_thund":"rgba(34,31,29,1)","el_nme":3,"el_cwt":3,"el_phw":3}' style="margin-top: 20px;">Mais previsões: <a href="https://tempolongo.com/rio_de_janeiro_tempo_25_dias/" id="ww_024836fa03d7b_u" target="_blank">Rio de Janeiro 30 day forecast</a></div><script async src="https://app3.weatherwidget.org/js/?id=ww_024836fa03d7b"></script>
+        <div id="weatherWidget" style="margin: 10px auto 5px; transform: scale(1.2); transform-origin: top center;">
+          <div id="ww_024836fa03d7b" v='1.3' loc='id' a='{"t":"horizontal","lang":"pt","sl_lpl":1,"ids":["wl1583"],"font":"Arial","sl_ics":"one","sl_sot":"celsius","cl_bkg":"#FFFFFF00","cl_font":"rgba(31,27,27,1)","cl_cloud":"rgba(81,77,77,1)","cl_persp":"rgba(0,0,0,1)","cl_sun":"rgba(30,29,26,1)","cl_moon":"rgba(40,38,34,1)","cl_thund":"rgba(34,31,29,1)","el_nme":3,"el_cwt":3,"el_phw":3}'>Mais previsões: <a href="https://tempolongo.com/rio_de_janeiro_tempo_25_dias/" id="ww_024836fa03d7b_u" target="_blank">Rio de Janeiro 30 day forecast</a></div><script async src="https://app3.weatherwidget.org/js/?id=ww_024836fa03d7b"></script>
+        </div>
       </div>
 
       <!-- Contador de Próximo Evento -->
@@ -1004,10 +1319,339 @@
     }
   }
 
+  // ====== TIMER FUNCTIONS ======
+
+  let timerBars = [];
+  let timerAnimationFrame = null;
+  let timerUpdateInterval = null;
+
+  /**
+   * Gera as 60 barras radiais no SVG
+   */
+  function generateTimerBars() {
+    const svg = document.querySelector('.timer-circle');
+    if (!svg) return;
+
+    const numBars = 60;
+    const centerX = 100;
+    const centerY = 100;
+    const radius = 90;
+    const barLength = 12;
+
+    // Limpar barras existentes
+    svg.innerHTML = '';
+    timerBars = [];
+
+    for (let i = 0; i < numBars; i++) {
+      const angle = (i / numBars) * 2 * Math.PI;
+      const x1 = centerX + radius * Math.cos(angle);
+      const y1 = centerY + radius * Math.sin(angle);
+      const x2 = centerX + (radius - barLength) * Math.cos(angle);
+      const y2 = centerY + (radius - barLength) * Math.sin(angle);
+
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', x1);
+      line.setAttribute('y1', y1);
+      line.setAttribute('x2', x2);
+      line.setAttribute('y2', y2);
+      line.setAttribute('stroke', '#000');
+      line.setAttribute('stroke-width', '2.5');
+      line.setAttribute('stroke-linecap', 'round');
+      line.setAttribute('class', 'timer-bar');
+      line.setAttribute('data-index', i);
+
+      svg.appendChild(line);
+      timerBars.push(line);
+    }
+  }
+
+  /**
+   * Atualiza visualização das barras baseado no progresso
+   */
+  function updateTimerBarsDisplay() {
+    if (!window.KindleTimer) return;
+
+    const state = window.KindleTimer.getState();
+
+    if (!state.isActive) {
+      // Timer parado - mostra todas as barras
+      timerBars.forEach(bar => bar.classList.remove('hidden'));
+      return;
+    }
+
+    const remaining = window.KindleTimer.getRemainingTime();
+    const progress = 1 - (remaining / state.duration); // 0 a 1
+
+    // Calcula quantas barras devem estar escondidas
+    const barsToHide = Math.floor(progress * timerBars.length);
+
+    // Atualiza visibilidade das barras (sentido horário)
+    timerBars.forEach((bar, index) => {
+      if (index < barsToHide) {
+        bar.classList.add('hidden');
+      } else {
+        bar.classList.remove('hidden');
+      }
+    });
+  }
+
+  /**
+   * Atualiza display central do timer
+   */
+  function updateTimerDisplay() {
+    if (!window.KindleTimer) return;
+
+    const display = document.getElementById('timerDisplay');
+    if (!display) return;
+
+    const state = window.KindleTimer.getState();
+
+    // Sempre mostra o tempo do timer (não mais alterna com relógio)
+    if (!state.isActive) {
+      display.textContent = '00:00';
+    } else {
+      const remaining = window.KindleTimer.getRemainingTime();
+      display.textContent = window.KindleTimer.formatTime(remaining);
+    }
+  }
+
+  /**
+   * Atualiza UI (barras + display + controles)
+   */
+  function updateTimerUI() {
+    if (!window.KindleTimer) return;
+
+    const state = window.KindleTimer.getState();
+
+    // Atualiza display e barras
+    updateTimerDisplay();
+    updateTimerBarsDisplay();
+
+    // Controla visibilidade dos elementos
+    const presetButtons = document.getElementById('presetButtons');
+    const manualInput = document.getElementById('manualInput');
+    const timerControls = document.getElementById('timerControls');
+
+    if (state.isActive) {
+      // Timer ativo - esconde presets e input, mostra controles
+      presetButtons.classList.add('hidden');
+      manualInput.classList.add('hidden');
+      timerControls.classList.remove('hidden');
+
+      // Atualiza botão play/pause
+      const btnPlayPause = document.getElementById('btnPlayPause');
+      if (state.isPaused) {
+        btnPlayPause.textContent = '▶';
+        btnPlayPause.title = 'Continuar';
+      } else {
+        btnPlayPause.textContent = '❚❚';
+        btnPlayPause.title = 'Pausar';
+      }
+    } else {
+      // Timer parado - mostra presets e input, esconde controles
+      presetButtons.classList.remove('hidden');
+      manualInput.classList.remove('hidden');
+      timerControls.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Inicia timer com preset
+   */
+  function startPreset(presetName) {
+    if (!window.KindleTimer) return;
+
+    const duration = window.KindleTimer.PRESETS[presetName];
+    if (!duration) return;
+
+    window.KindleTimer.start(duration, presetName);
+    startTimerMonitoring();
+    updateTimerUI();
+  }
+
+  /**
+   * Inicia timer customizado
+   */
+  function startCustomTimer() {
+    if (!window.KindleTimer) return;
+
+    const input = document.getElementById('customMinutes');
+    const minutes = parseInt(input.value);
+
+    if (!minutes || minutes < 1) {
+      alert('Digite um valor válido em minutos');
+      return;
+    }
+
+    const duration = minutes * 60 * 1000; // Converte para ms
+    window.KindleTimer.start(duration, 'custom');
+    startTimerMonitoring();
+    updateTimerUI();
+
+    // Limpa input
+    input.value = '';
+  }
+
+  /**
+   * Toggle play/pause
+   */
+  function togglePlayPause() {
+    if (!window.KindleTimer) return;
+
+    const state = window.KindleTimer.getState();
+
+    if (state.isPaused) {
+      window.KindleTimer.resume();
+    } else {
+      window.KindleTimer.pause();
+    }
+
+    updateTimerUI();
+  }
+
+  /**
+   * Para timer
+   */
+  function stopTimerUI() {
+    if (!window.KindleTimer) return;
+
+    window.KindleTimer.stop();
+    stopTimerMonitoring();
+    updateTimerUI();
+  }
+
+  /**
+   * Alterna entre exibir relógio ou timer na área principal
+   */
+  function setDisplayMode(mode) {
+    console.log('setDisplayMode chamado com modo:', mode);
+
+    const relogioContainer = document.getElementById('relogioContainer');
+    const timerContainer = document.getElementById('timerMainContainer');
+    const dataSemanaLinha = document.getElementById('dataSemanaLinha');
+    const weatherWidget = document.getElementById('weatherWidget');
+    const btnTimer = document.getElementById('btnModeTimer');
+    const btnClock = document.getElementById('btnModeClock');
+
+    console.log('Elementos encontrados:', {
+      relogioContainer: !!relogioContainer,
+      timerContainer: !!timerContainer,
+      dataSemanaLinha: !!dataSemanaLinha,
+      weatherWidget: !!weatherWidget
+    });
+
+    if (mode === 'timer') {
+      // Mostra timer, esconde relógio, data e clima
+      relogioContainer.classList.add('hidden');
+      timerContainer.classList.remove('hidden');
+      if (dataSemanaLinha) {
+        dataSemanaLinha.classList.add('hidden');
+        console.log('Data/Semana escondida');
+      }
+      if (weatherWidget) {
+        weatherWidget.classList.add('hidden');
+        console.log('Weather widget escondido');
+      }
+      btnTimer.classList.add('active');
+      btnClock.classList.remove('active');
+
+      // Salva preferência
+      localStorage.setItem('displayMode', 'timer');
+
+      // Atualiza UI do timer
+      updateTimerUI();
+    } else {
+      // Mostra relógio, data e clima, esconde timer
+      relogioContainer.classList.remove('hidden');
+      timerContainer.classList.add('hidden');
+      if (dataSemanaLinha) {
+        dataSemanaLinha.classList.remove('hidden');
+        console.log('Data/Semana mostrada');
+      }
+      if (weatherWidget) {
+        weatherWidget.classList.remove('hidden');
+        console.log('Weather widget mostrado');
+      }
+      btnClock.classList.add('active');
+      btnTimer.classList.remove('active');
+
+      // Salva preferência
+      localStorage.setItem('displayMode', 'clock');
+    }
+  }
+
+  /**
+   * Inicia monitoramento contínuo do timer
+   */
+  function startTimerMonitoring() {
+    if (timerUpdateInterval) return; // Já está rodando
+
+    timerUpdateInterval = setInterval(() => {
+      updateTimerUI();
+    }, 1000); // Atualiza a cada segundo
+  }
+
+  /**
+   * Para monitoramento
+   */
+  function stopTimerMonitoring() {
+    if (timerUpdateInterval) {
+      clearInterval(timerUpdateInterval);
+      timerUpdateInterval = null;
+    }
+  }
+
+  /**
+   * Inicializa timer UI
+   */
+  function initTimerUI() {
+    // Gera barras SVG
+    generateTimerBars();
+
+    // Carrega preferência de exibição (relógio ou timer)
+    const displayMode = localStorage.getItem('displayMode') || 'clock';
+    setDisplayMode(displayMode);
+
+    // Se timer estava ativo, continua monitorando
+    if (window.KindleTimer) {
+      const state = window.KindleTimer.getState();
+      if (state.isActive) {
+        startTimerMonitoring();
+        // Se timer está ativo, muda automaticamente para modo timer
+        setDisplayMode('timer');
+      }
+    }
+
+    // Atualiza UI inicial
+    updateTimerUI();
+
+    // Listener para Enter no input customizado
+    const customInput = document.getElementById('customMinutes');
+    if (customInput) {
+      customInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          startCustomTimer();
+        }
+      });
+    }
+  }
+
   // ====== INICIALIZAÇÃO ======
   carregarPreferencias();
   carregarEventos(); // Carregar eventos do Google Calendar
   atualizar();
+
+  // Inicializa timer UI quando KindleTimer estiver disponível
+  if (window.KindleTimer) {
+    initTimerUI();
+  } else {
+    // Aguarda timer.js carregar
+    setTimeout(() => {
+      if (window.KindleTimer) {
+        initTimerUI();
+      }
+    }, 100);
+  }
 
   // Atualizar a cada minuto
   setInterval(atualizar, 60000);
