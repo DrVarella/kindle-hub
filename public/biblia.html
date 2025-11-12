@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bíblia Ave Maria - Kindle Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="timer.js"></script>
+    <style>
+        .bible-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .bible-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #000;
+        }
+
+        .bible-header h1 {
+            font-size: 24px;
+            margin: 0;
+        }
+
+        .back-link {
+            padding: 8px 16px;
+            background: #fff;
+            border: 2px solid #000;
+            text-decoration: none;
+            color: #000;
+            font-weight: bold;
+            border-radius: 4px;
+        }
+
+        .back-link:hover {
+            background: #f0f0f0;
+        }
+
+        /* Testament Toggle */
+        .testament-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .testament-toggle button {
+            flex: 1;
+            padding: 12px;
+            background: #fff;
+            border: 3px solid #000;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .testament-toggle button.active {
+            background: #000;
+            color: #fff;
+        }
+
+        .testament-toggle button:hover:not(.active) {
+            background: #f0f0f0;
+        }
+
+        /* Selectors */
+        .selectors {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+
+        .selector-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .selector-group label {
+            font-weight: bold;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .selector-group select {
+            padding: 10px;
+            font-size: 14px;
+            border: 3px solid #000;
+            border-radius: 6px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .selector-group select:focus {
+            outline: none;
+            border-color: #333;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+        }
+
+        /* Chapter Navigation */
+        .chapter-nav {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 30px 0;
+            padding: 15px;
+            background: #f8f8f8;
+            border: 2px solid #000;
+            border-radius: 8px;
+        }
+
+        .chapter-nav h2 {
+            margin: 0;
+            font-size: 20px;
+            text-align: center;
+            flex: 1;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: #fff;
+            border: 3px solid #000;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+            min-width: 120px;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .nav-btn:active:not(:disabled) {
+            transform: translateY(0);
+            box-shadow: none;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        /* Verse Container */
+        .verse-container {
+            background: #fff;
+            padding: 25px;
+            border: 2px solid #000;
+            border-radius: 8px;
+            line-height: 1.8;
+            font-size: 16px;
+        }
+
+        .verse {
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        .verse-number {
+            font-weight: bold;
+            color: #000;
+            margin-right: 8px;
+            font-size: 14px;
+            vertical-align: super;
+            font-size: 12px;
+        }
+
+        .verse-text {
+            color: #000;
+        }
+
+        /* Loading State */
+        .loading {
+            text-align: center;
+            padding: 60px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #d00;
+            font-weight: bold;
+            background: #fee;
+            border: 2px solid #d00;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .selectors {
+                grid-template-columns: 1fr;
+            }
+
+            .chapter-nav {
+                flex-direction: column;
+                gap: 15px;
+            }
+
+            .nav-btn {
+                width: 100%;
+            }
+
+            .chapter-nav h2 {
+                order: -1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="bible-container">
+        <!-- Header -->
+        <div class="bible-header">
+            <a href="dashboard.html" class="back-link">← Voltar</a>
+            <h1>Bíblia Ave Maria</h1>
+            <div style="width: 100px;"></div> <!-- Spacer for centering -->
+        </div>
+
+        <!-- Testament Toggle -->
+        <div class="testament-toggle">
+            <button id="btnAntigoTestamento" class="active" onclick="switchTestament('antigoTestamento')">
+                Antigo Testamento
+            </button>
+            <button id="btnNovoTestamento" onclick="switchTestament('novoTestamento')">
+                Novo Testamento
+            </button>
+        </div>
+
+        <!-- Selectors -->
+        <div class="selectors">
+            <div class="selector-group">
+                <label for="bookSelect">Livro:</label>
+                <select id="bookSelect" onchange="onBookChange()">
+                    <option value="">Carregando...</option>
+                </select>
+            </div>
+            <div class="selector-group">
+                <label for="chapterSelect">Capítulo:</label>
+                <select id="chapterSelect" onchange="onChapterChange()">
+                    <option value="">-</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Chapter Navigation -->
+        <div class="chapter-nav">
+            <button id="btnPrev" class="nav-btn" onclick="goToPreviousChapter()">◄ Anterior</button>
+            <h2 id="chapterTitle">-</h2>
+            <button id="btnNext" class="nav-btn" onclick="goToNextChapter()">Próximo ►</button>
+        </div>
+
+        <!-- Verse Container -->
+        <div id="verseContainer" class="verse-container">
+            <div class="loading">Carregando Bíblia...</div>
+        </div>
+    </div>
+
+    <script>
+        // ========== ESTADO GLOBAL ==========
+        let bibliaData = null;
+        let currentTestament = 'antigoTestamento';
+        let currentBookIndex = 0;
+        let currentChapter = 1;
+
+        // ========== INICIALIZAÇÃO ==========
+
+        /**
+         * Carrega o JSON da Bíblia
+         */
+        async function loadBibleData() {
+            try {
+                const response = await fetch('/biblias/bibliaAveMaria.json');
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar Bíblia');
+                }
+                bibliaData = await response.json();
+
+                // Inicializa interface
+                populateBookDropdown();
+                renderChapter();
+            } catch (error) {
+                console.error('Erro ao carregar Bíblia:', error);
+                document.getElementById('verseContainer').innerHTML =
+                    '<div class="error">Erro ao carregar a Bíblia. Por favor, recarregue a página.</div>';
+            }
+        }
+
+        // ========== SELETORES ==========
+
+        /**
+         * Popula dropdown de livros baseado no testamento atual
+         */
+        function populateBookDropdown() {
+            if (!bibliaData) return;
+
+            const books = bibliaData[currentTestament];
+            const select = document.getElementById('bookSelect');
+
+            select.innerHTML = '';
+            books.forEach((book, index) => {
+                const option = document.createElement('option');
+                option.value = index;
+                option.textContent = book.nome;
+                select.appendChild(option);
+            });
+
+            select.value = currentBookIndex;
+            populateChapterDropdown();
+        }
+
+        /**
+         * Popula dropdown de capítulos baseado no livro atual
+         */
+        function populateChapterDropdown() {
+            if (!bibliaData) return;
+
+            const book = bibliaData[currentTestament][currentBookIndex];
+            const select = document.getElementById('chapterSelect');
+
+            select.innerHTML = '';
+            book.capitulos.forEach((cap, index) => {
+                const option = document.createElement('option');
+                option.value = cap.capitulo;
+                option.textContent = cap.capitulo;
+                select.appendChild(option);
+            });
+
+            select.value = currentChapter;
+        }
+
+        /**
+         * Troca entre Antigo e Novo Testamento
+         */
+        function switchTestament(testament) {
+            currentTestament = testament;
+            currentBookIndex = 0;
+            currentChapter = 1;
+
+            // Atualiza botões
+            document.getElementById('btnAntigoTestamento').classList.toggle('active', testament === 'antigoTestamento');
+            document.getElementById('btnNovoTestamento').classList.toggle('active', testament === 'novoTestamento');
+
+            // Atualiza interface
+            populateBookDropdown();
+            renderChapter();
+        }
+
+        /**
+         * Quando usuário seleciona um livro diferente
+         */
+        function onBookChange() {
+            const select = document.getElementById('bookSelect');
+            currentBookIndex = parseInt(select.value);
+            currentChapter = 1;
+
+            populateChapterDropdown();
+            renderChapter();
+        }
+
+        /**
+         * Quando usuário seleciona um capítulo diferente
+         */
+        function onChapterChange() {
+            const select = document.getElementById('chapterSelect');
+            currentChapter = parseInt(select.value);
+            renderChapter();
+        }
+
+        // ========== NAVEGAÇÃO ==========
+
+        /**
+         * Vai para capítulo anterior
+         */
+        function goToPreviousChapter() {
+            if (!bibliaData) return;
+
+            const book = bibliaData[currentTestament][currentBookIndex];
+
+            if (currentChapter > 1) {
+                currentChapter--;
+            } else if (currentBookIndex > 0) {
+                // Vai para o último capítulo do livro anterior
+                currentBookIndex--;
+                const prevBook = bibliaData[currentTestament][currentBookIndex];
+                currentChapter = prevBook.capitulos.length;
+                populateBookDropdown();
+            } else {
+                // Já está no primeiro capítulo do primeiro livro
+                return;
+            }
+
+            document.getElementById('chapterSelect').value = currentChapter;
+            renderChapter();
+        }
+
+        /**
+         * Vai para próximo capítulo
+         */
+        function goToNextChapter() {
+            if (!bibliaData) return;
+
+            const book = bibliaData[currentTestament][currentBookIndex];
+            const maxChapters = book.capitulos.length;
+
+            if (currentChapter < maxChapters) {
+                currentChapter++;
+            } else if (currentBookIndex < bibliaData[currentTestament].length - 1) {
+                // Vai para o primeiro capítulo do próximo livro
+                currentBookIndex++;
+                currentChapter = 1;
+                populateBookDropdown();
+            } else {
+                // Já está no último capítulo do último livro
+                return;
+            }
+
+            document.getElementById('chapterSelect').value = currentChapter;
+            renderChapter();
+        }
+
+        /**
+         * Atualiza estado dos botões de navegação
+         */
+        function updateNavigationButtons() {
+            if (!bibliaData) return;
+
+            const book = bibliaData[currentTestament][currentBookIndex];
+            const maxChapters = book.capitulos.length;
+            const isFirstBook = currentBookIndex === 0;
+            const isLastBook = currentBookIndex === bibliaData[currentTestament].length - 1;
+
+            // Botão Anterior
+            const btnPrev = document.getElementById('btnPrev');
+            btnPrev.disabled = (currentChapter === 1 && isFirstBook);
+
+            // Botão Próximo
+            const btnNext = document.getElementById('btnNext');
+            btnNext.disabled = (currentChapter === maxChapters && isLastBook);
+        }
+
+        // ========== RENDERIZAÇÃO ==========
+
+        /**
+         * Renderiza o capítulo atual
+         */
+        function renderChapter() {
+            if (!bibliaData) return;
+
+            const book = bibliaData[currentTestament][currentBookIndex];
+            const chapter = book.capitulos.find(c => c.capitulo === currentChapter);
+
+            if (!chapter) {
+                console.error('Capítulo não encontrado:', currentChapter);
+                return;
+            }
+
+            // Atualiza título
+            document.getElementById('chapterTitle').textContent =
+                `${book.nome} ${currentChapter}`;
+
+            // Renderiza versículos
+            const container = document.getElementById('verseContainer');
+            let html = '';
+
+            chapter.versiculos.forEach(verse => {
+                html += `
+                    <div class="verse">
+                        <span class="verse-number">${verse.versiculo}</span>
+                        <span class="verse-text">${verse.texto}</span>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+
+            // Atualiza botões de navegação
+            updateNavigationButtons();
+
+            // Scroll para o topo
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ========== INICIALIZAÇÃO ==========
+
+        // Carrega Bíblia quando página carrega
+        window.addEventListener('DOMContentLoaded', loadBibleData);
+    </script>
+</body>
+</html>
