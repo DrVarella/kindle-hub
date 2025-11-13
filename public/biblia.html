@@ -106,13 +106,14 @@
             box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
         }
 
-        /* Chapter Navigation */
+        /* Chapter Navigation - Grid Layout */
         .chapter-nav {
-            display: flex;
+            display: grid;
+            grid-template-columns: 45px 1fr 45px;  /* botão | título | botão */
             align-items: center;
-            justify-content: space-between;
-            margin: 30px 0;
-            padding: 15px;
+            gap: 10px;
+            margin: 20px 0;
+            padding: 10px 12px;
             background: #f8f8f8;
             border: 2px solid #000;
             border-radius: 8px;
@@ -120,21 +121,36 @@
 
         .chapter-nav h2 {
             margin: 0;
-            font-size: 20px;
+            font-size: 18px;
             text-align: center;
-            flex: 1;
+            grid-column: 2;                  /* Fica na coluna do meio */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
         .nav-btn {
-            padding: 10px 20px;
+            padding: 0;
             background: #fff;
             border: 3px solid #000;
             font-weight: bold;
-            font-size: 14px;
+            font-size: 16px;
             cursor: pointer;
             border-radius: 6px;
             transition: all 0.2s ease;
-            min-width: 120px;
+            width: 45px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #btnPrev {
+            grid-column: 1;                  /* Primeira coluna */
+        }
+
+        #btnNext {
+            grid-column: 3;                  /* Terceira coluna */
         }
 
         .nav-btn:hover:not(:disabled) {
@@ -153,14 +169,33 @@
             cursor: not-allowed;
         }
 
+        /* Para telas pequenas (Kindle) */
+        @media (max-width: 650px) {
+            .chapter-nav {
+                grid-template-columns: 40px 1fr 40px;  /* Botões menores */
+                padding: 8px 10px;
+                gap: 8px;
+            }
+
+            .nav-btn {
+                width: 40px;
+                height: 36px;
+                font-size: 14px;
+            }
+
+            .chapter-nav h2 {
+                font-size: 16px;
+            }
+        }
+
         /* Verse Container */
         .verse-container {
             background: #fff;
-            padding: 25px;
+            padding: 20px;
             border: 2px solid #000;
             border-radius: 8px;
             line-height: 1.8;
-            font-size: 16px;
+            font-size: 18px;
         }
 
         .verse {
@@ -304,9 +339,9 @@
 
         <!-- Chapter Navigation -->
         <div class="chapter-nav">
-            <button id="btnPrev" class="nav-btn" onclick="goToPreviousChapter()">◄ Anterior</button>
+            <button id="btnPrev" class="nav-btn" onclick="goToPreviousChapter()"> ◄ </button>
             <h2 id="chapterTitle">-</h2>
-            <button id="btnNext" class="nav-btn" onclick="goToNextChapter()">Próximo ►</button>
+            <button id="btnNext" class="nav-btn" onclick="goToNextChapter()"> ► </button>
         </div>
 
         <!-- Verse Container -->
