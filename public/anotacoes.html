@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anotações - Hub Kindle</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="timer.js"></script>
+    <script src="points-popup.js"></script>
+    <style>
+        .anotacoes-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .tags-filter {
+            margin: 20px 0;
+            padding: 15px;
+            border: 2px solid #000;
+            background: #f5f5f5;
+        }
+
+        .tags-filter h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        .tags-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .tag-btn {
+            padding: 8px 16px;
+            background: #fff;
+            border: 2px solid #000;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .tag-btn:hover {
+            background: #e8e8e8;
+        }
+
+        .tag-btn.active {
+            background: #000;
+            color: #fff;
+        }
+
+        .actions-bar {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            padding: 12px 24px;
+            background: #fff;
+            border: 3px solid #000;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .action-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .annotations-list {
+            margin: 20px 0;
+        }
+
+        .annotation-item {
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #000;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .annotation-item:hover {
+            background: #f5f5f5;
+        }
+
+        .annotation-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .annotation-tags {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .annotation-tag {
+            padding: 4px 10px;
+            background: #e8e8e8;
+            border: 1px solid #666;
+            font-size: 12px;
+        }
+
+        .annotation-date {
+            font-size: 12px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 9999;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: #fff;
+            border: 3px solid #000;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 30px;
+        }
+
+        .modal-header {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #000;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin: 20px 0;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 16px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #000;
+            font-size: 16px;
+            font-family: Arial, sans-serif;
+        }
+
+        .form-group textarea {
+            min-height: 200px;
+            resize: vertical;
+        }
+
+        .form-actions {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: 2px solid #000;
+            background: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+        }
+
+        .btn-primary {
+            background: #000;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #333;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+
+        .empty-state h3 {
+            font-size: 20px;
+            margin-bottom: 10px;
+        }
+
+        .status-message {
+            padding: 15px;
+            margin: 15px 0;
+            border: 2px solid;
+            font-weight: bold;
+        }
+
+        .status-success {
+            background: #d4edda;
+            border-color: #28a745;
+            color: #155724;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-container">
+        <div class="header">
+            <h1>Anotações do Notion</h1>
+            <a href="plano-inclinado.html" class="back-link">Voltar</a>
+        </div>
+
+        <div class="anotacoes-container">
+            <!-- Filtro por Tags -->
+            <div class="tags-filter">
+                <h3>Filtrar por Categoria:</h3>
+                <div class="tags-grid">
+                    <button class="tag-btn active" onclick="filterByTag(null)">Todas</button>
+                    <button class="tag-btn" onclick="filterByTag('Círculo')">Círculo</button>
+                    <button class="tag-btn" onclick="filterByTag('Direção')">Direção</button>
+                    <button class="tag-btn" onclick="filterByTag('B10')">B10</button>
+                    <button class="tag-btn" onclick="filterByTag('Aula de doutrina')">Aula de doutrina</button>
+                    <button class="tag-btn" onclick="filterByTag('Dia de Turno')">Dia de Turno</button>
+                    <button class="tag-btn" onclick="filterByTag('Oração Mental')">Oração Mental</button>
+                    <button class="tag-btn" onclick="filterByTag('Confissão')">Confissão</button>
+                    <button class="tag-btn" onclick="filterByTag('Recolhimento')">Recolhimento</button>
+                    <button class="tag-btn" onclick="filterByTag('Curso Anual')">Curso Anual</button>
+                    <button class="tag-btn" onclick="filterByTag('Retiro')">Retiro</button>
+                </div>
+            </div>
+
+            <!-- Ações -->
+            <div class="actions-bar">
+                <button class="action-btn" onclick="openNewAnnotationModal()">+ Nova Anotação</button>
+                <button class="action-btn" onclick="loadAnnotations()">🔄 Atualizar</button>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMessage"></div>
+
+            <!-- Loading -->
+            <div id="loadingMessage" class="loading" style="display: none;">
+                Carregando anotações do Notion...
+            </div>
+
+            <!-- Lista de Anotações -->
+            <div id="annotationsList" class="annotations-list"></div>
+        </div>
+    </div>
+
+    <!-- Modal de Nova/Editar Anotação -->
+    <div id="annotationModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">Nova Anotação</div>
+
+            <form id="annotationForm" onsubmit="saveAnnotation(event)">
+                <div class="form-group">
+                    <label for="annotationTitle">Título *</label>
+                    <input type="text" id="annotationTitle" required placeholder="Título da anotação">
+                </div>
+
+                <div class="form-group">
+                    <label for="annotationContent">Conteúdo</label>
+                    <textarea id="annotationContent" placeholder="Escreva sua anotação aqui..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="annotationTags">Categoria *</label>
+                    <select id="annotationTags" required>
+                        <option value="">Selecione uma categoria</option>
+                        <option value="Círculo">Círculo</option>
+                        <option value="Direção">Direção</option>
+                        <option value="B10">B10</option>
+                        <option value="Aula de doutrina">Aula de doutrina</option>
+                        <option value="Dia de Turno">Dia de Turno</option>
+                        <option value="Oração Mental">Oração Mental</option>
+                        <option value="Confissão">Confissão</option>
+                        <option value="Recolhimento">Recolhimento</option>
+                        <option value="Curso Anual">Curso Anual</option>
+                        <option value="Retiro">Retiro</option>
+                    </select>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn" onclick="closeModal()">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">Salvar no Notion</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        let allAnnotations = [];
+        let currentFilter = null;
+
+        // Mostrar mensagem de status
+        function showStatus(message, type = 'success') {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.className = `status-message status-${type}`;
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+
+            setTimeout(() => {
+                statusEl.style.display = 'none';
+            }, 5000);
+        }
+
+        // Filtrar por tag
+        function filterByTag(tag) {
+            currentFilter = tag;
+
+            // Atualizar botões ativos
+            document.querySelectorAll('.tag-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+
+            // Renderizar lista filtrada
+            renderAnnotations();
+        }
+
+        // Abrir modal de nova anotação
+        function openNewAnnotationModal() {
+            document.getElementById('annotationModal').style.display = 'block';
+            document.getElementById('annotationForm').reset();
+            document.querySelector('.modal-header').textContent = 'Nova Anotação';
+        }
+
+        // Fechar modal
+        function closeModal() {
+            document.getElementById('annotationModal').style.display = 'none';
+
+            // Reabilitar campos
+            document.getElementById('annotationTitle').disabled = false;
+            document.getElementById('annotationContent').disabled = false;
+            document.getElementById('annotationTags').disabled = false;
+
+            // Mostrar botão de salvar novamente
+            document.querySelector('.btn-primary').style.display = 'inline-block';
+        }
+
+        // Salvar anotação no Notion
+        async function saveAnnotation(event) {
+            event.preventDefault();
+
+            const title = document.getElementById('annotationTitle').value;
+            const content = document.getElementById('annotationContent').value;
+            const tag = document.getElementById('annotationTags').value;
+
+            if (!title || !tag) {
+                alert('Por favor, preencha o título e selecione uma categoria.');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/notion/annotations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title,
+                        content,
+                        tags: [tag]
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Erro ao salvar anotação');
+                }
+
+                const data = await response.json();
+
+                showStatus('✅ Anotação salva com sucesso no Notion!', 'success');
+                closeModal();
+
+                // Recarregar lista
+                await loadAnnotations();
+            } catch (error) {
+                console.error('Erro ao salvar anotação:', error);
+                showStatus('❌ Erro ao salvar anotação. Verifique a conexão com o Notion.', 'error');
+            }
+        }
+
+        // Abrir anotação em modal
+        async function openAnnotation(annotationId) {
+            try {
+                const response = await fetch(`/api/notion/annotations/${annotationId}`);
+                if (!response.ok) {
+                    throw new Error('Erro ao carregar anotação');
+                }
+
+                const annotation = await response.json();
+
+                // Preencher modal com os dados
+                document.querySelector('#annotationModal .modal-header').textContent = annotation.title;
+                document.getElementById('annotationTitle').value = annotation.title;
+                document.getElementById('annotationContent').value = annotation.content;
+
+                // Selecionar a tag correta
+                const tagsSelect = document.getElementById('annotationTags');
+                if (annotation.tags.length > 0) {
+                    tagsSelect.value = annotation.tags[0];
+                } else {
+                    tagsSelect.value = '';
+                }
+
+                // Desabilitar edição (apenas visualização)
+                document.getElementById('annotationTitle').disabled = true;
+                document.getElementById('annotationContent').disabled = true;
+                document.getElementById('annotationTags').disabled = true;
+
+                // Esconder botão de salvar
+                document.querySelector('.btn-primary').style.display = 'none';
+
+                // Mostrar modal
+                document.getElementById('annotationModal').style.display = 'block';
+            } catch (error) {
+                console.error('Erro ao abrir anotação:', error);
+                showStatus('Erro ao carregar anotação', 'error');
+            }
+        }
+
+        // Renderizar lista de anotações
+        function renderAnnotations() {
+            const container = document.getElementById('annotationsList');
+
+            // Filtrar anotações
+            const filtered = currentFilter
+                ? allAnnotations.filter(a => a.tags.includes(currentFilter))
+                : allAnnotations;
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Nenhuma anotação encontrada</h3>
+                        <p>Crie sua primeira anotação ou ajuste os filtros.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(annotation => {
+                const title = annotation.title || 'Sem título';
+                const tags = annotation.tags || [];
+                const date = annotation.createdTime ? new Date(annotation.createdTime).toLocaleDateString('pt-BR') : 'Data desconhecida';
+
+                return `
+                    <div class="annotation-item" onclick="openAnnotation('${annotation.id}')">
+                        <div class="annotation-title">${title}</div>
+                        <div class="annotation-tags">
+                            ${tags.map(tag => `<span class="annotation-tag">${tag}</span>`).join('')}
+                        </div>
+                        <div class="annotation-date">
+                            Criado em: ${date}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Carregar anotações do Notion
+        async function loadAnnotations() {
+            const loadingEl = document.getElementById('loadingMessage');
+            const listEl = document.getElementById('annotationsList');
+
+            try {
+                loadingEl.style.display = 'block';
+                listEl.innerHTML = '';
+
+                const url = '/api/notion/annotations';
+                console.log('Carregando anotações de:', url);
+
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    console.error('Erro na resposta:', response.status, errorData);
+                    throw new Error(`Erro ${response.status}: ${errorData}`);
+                }
+
+                const data = await response.json();
+                console.log('Anotações recebidas:', data.length, 'itens');
+                console.log('Primeira anotação:', data[0]);
+
+                allAnnotations = data;
+                loadingEl.style.display = 'none';
+
+                renderAnnotations();
+            } catch (error) {
+                console.error('Erro ao carregar anotações:', error);
+                loadingEl.style.display = 'none';
+                listEl.innerHTML = `
+                    <div class="empty-state">
+                        <h3>Erro ao carregar anotações</h3>
+                        <p>Verifique se o Notion está configurado corretamente.</p>
+                        <p style="font-size: 12px; color: #999; margin-top: 10px;">Erro: ${error.message}</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Fechar modal ao clicar fora
+        window.onclick = function(event) {
+            const modal = document.getElementById('annotationModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        };
+
+        // Inicializar
+        loadAnnotations();
+    </script>
+</body>
+</html>

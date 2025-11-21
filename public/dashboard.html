@@ -306,6 +306,35 @@
     .contador-evento.oculto{
       display:none !important;
     }
+    .contador-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:15px;
+    }
+    .contador-grid.centralizado{
+      grid-template-columns:1fr;
+    }
+    .evento-card{
+      border:none;
+      border-radius:0;
+      padding:12px;
+      background:transparent;
+    }
+    .evento-card .contador-titulo{
+      font-size:16px;
+    }
+    .evento-card .contador-tempo{
+      font-size:28px;
+    }
+    .evento-card .contador-label{
+      font-size:13px;
+    }
+    #eventoAtualCard{
+      background:transparent;
+    }
+    #eventoProximoCard{
+      background:transparent;
+    }
     .btn-fechar-contador{
       position:absolute;
       top:8px;
@@ -390,6 +419,15 @@
     body.eventos-ocultos .aba-agenda{
       left:100vw;
       transform:translateX(calc(-100% - 8px));
+    }
+
+    /* Ajuste para quando a viewport está rotacionada (horizontal) */
+    .viewport.rotated .aba-agenda{
+      left:calc(var(--relogio-percent) * 1vh);
+    }
+    .viewport.rotated body.eventos-ocultos .aba-agenda,
+    body.eventos-ocultos .viewport.rotated .aba-agenda{
+      left:100vh;
     }
 
     /* Topo de eventos grudado e alinhado à esquerda */
@@ -673,6 +711,7 @@
     }
   </style>
   <script src="timer.js"></script>
+  <script src="points-popup.js"></script>
 </head>
 <body>
   <div id="vp" class="viewport rotated">
@@ -688,6 +727,7 @@
             <div style="padding: 10px; display: flex; flex-direction: column; gap: 8px;">
               <a href="agenda.html" style="padding: 10px; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; font-weight: bold; text-align: center; border-radius: 4px;">Agenda</a>
               <a href="plano-inclinado.html" style="padding: 10px; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; font-weight: bold; text-align: center; border-radius: 4px;">Plano de Vida</a>
+              <a href="anotacoes.html" style="padding: 10px; background: #fff; border: 2px solid #000; text-decoration: none; color: #000; font-weight: bold; text-align: center; border-radius: 4px;">Anotações</a>
             </div>
           </details>
 
@@ -712,22 +752,6 @@
           </div>
 
           <div class="grupo-controle">
-            <label class="label-controle">
-              Proporção Relógio/Eventos
-              <span class="valor-controle" id="valorProporcao">70/30</span>
-            </label>
-            <input
-              type="range"
-              class="slider-controle"
-              id="sliderProporcao"
-              min="40"
-              max="85"
-              value="70"
-              step="5"
-              oninput="ajustarProporcao(this.value)">
-          </div>
-
-          <div class="grupo-controle">
             <label class="label-controle">Selecionar Dia</label>
             <div class="botoes-dia">
               <button class="btn-dia" id="btnOntem" onclick="irParaDia(-1)">Ontem</button>
@@ -746,15 +770,6 @@
               <label for="checkMostrarEventos">Mostrar Eventos</label>
             </div>
           </div>
-
-          <!-- Timer/Relógio Toggle -->
-          <div class="grupo-controle">
-            <label class="label-controle">Exibir</label>
-            <div class="timer-mode-toggle">
-              <button id="btnModeClock" class="btn-mode active" onclick="setDisplayMode('clock')">Relógio</button>
-              <button id="btnModeTimer" class="btn-mode" onclick="setDisplayMode('timer')">Timer</button>
-            </div>
-          </div>
             </div>
           </details>
         </div>
@@ -767,12 +782,12 @@
         </div>
 
         <!-- RELÓGIO PRINCIPAL -->
-        <div id="relogioContainer" class="display-container">
+        <div id="relogioContainer" class="display-container" style="cursor: pointer;" onclick="toggleDisplayMode()">
           <div id="relogio" class="relogio">00:00</div>
         </div>
 
         <!-- TIMER PRINCIPAL (escondido por padrão) -->
-        <div id="timerMainContainer" class="display-container hidden">
+        <div id="timerMainContainer" class="display-container hidden" style="cursor: pointer;" onclick="toggleDisplayMode()">
           <!-- Timer Circular (60 barras radiais) -->
           <div class="timer-container-main">
             <svg class="timer-circle" viewBox="0 0 200 200">
@@ -812,9 +827,23 @@
       <!-- Contador de Próximo Evento -->
       <div id="contadorEvento" class="contador-evento">
         <button id="btnFecharContador" class="btn-fechar-contador" title="Fechar" onclick="fecharContador()">×</button>
-        <div class="contador-titulo" id="contadorTitulo">—</div>
-        <div class="contador-tempo" id="contadorTempo">—</div>
-        <div class="contador-label" id="contadorLabel">—</div>
+
+        <!-- Container com grid para 2 eventos -->
+        <div id="contadorGrid" class="contador-grid">
+          <!-- Evento Atual (esquerda) -->
+          <div id="eventoAtualCard" class="evento-card" style="display: none;">
+            <div class="contador-titulo" id="contadorTitulo">—</div>
+            <div class="contador-tempo" id="contadorTempo">—</div>
+            <div class="contador-label" id="contadorLabel">—</div>
+          </div>
+
+          <!-- Próximo Evento (direita) -->
+          <div id="eventoProximoCard" class="evento-card" style="display: none;">
+            <div class="contador-titulo" id="contadorTituloProximo">—</div>
+            <div class="contador-tempo" id="contadorTempoProximo">—</div>
+            <div class="contador-label" id="contadorLabelProximo">—</div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -964,6 +993,7 @@
     var secaoEventos = document.querySelector('.secao-eventos');
     var secaoRelogio = document.querySelector('.secao-relogio');
     var abaAgenda = document.getElementById('abaAgenda');
+    var weatherWidget = document.getElementById('weatherWidget');
 
     if(flag){
       secaoEventos.classList.remove('oculto');
@@ -975,6 +1005,11 @@
       var s = document.getElementById('sliderTamanho');
       if(s) s.value = 130;
       if(abaAgenda) abaAgenda.classList.add('aberta');
+
+      // Reduzir widget de clima quando aba aberta
+      if(weatherWidget) {
+        weatherWidget.style.transform = 'scale(0.9)';
+      }
     } else {
       secaoEventos.classList.add('oculto');
       secaoRelogio.classList.add('expandido');
@@ -985,6 +1020,11 @@
       var s2 = document.getElementById('sliderTamanho');
       if(s2) s2.value = 200;
       if(abaAgenda) abaAgenda.classList.remove('aberta');
+
+      // Restaurar tamanho original do widget quando aba fechada
+      if(weatherWidget) {
+        weatherWidget.style.transform = 'scale(1.2)';
+      }
     }
     localStorage.setItem('mostrarEventos', flag ? 'true' : 'false');
   }
@@ -1159,8 +1199,9 @@
     var agora = n.getHours() * 60 + n.getMinutes();
     var eventoAtual = null;
     var proximoEvento = null;
+    var proximoDentro5Min = null;
 
-    // Procurar evento atual ou próximo (ignorando eventos com estrela)
+    // Procurar evento atual e próximo (ignorando eventos com estrela)
     for(var i = 0; i < eventosValidos.length; i++){
       var e = eventosValidos[i];
       var inicio = minutos(e.inicio);
@@ -1168,23 +1209,41 @@
 
       if(agora >= inicio && agora < fim){
         eventoAtual = e;
-        break;
-      }
-
-      if(agora < inicio && !proximoEvento){
-        proximoEvento = e;
+        // Continuar procurando o próximo evento
+      } else if(agora < inicio){
+        if(!proximoEvento){
+          proximoEvento = e;
+          // Verificar se está dentro de 5 minutos
+          var diffInicio = inicio - agora;
+          if(diffInicio <= 5){
+            proximoDentro5Min = e;
+          }
+        }
       }
     }
 
+    var eventoAtualCard = document.getElementById('eventoAtualCard');
+    var eventoProximoCard = document.getElementById('eventoProximoCard');
+    var contadorGrid = document.getElementById('contadorGrid');
     var titulo = document.getElementById('contadorTitulo');
     var tempo = document.getElementById('contadorTempo');
     var label = document.getElementById('contadorLabel');
+    var tituloProximo = document.getElementById('contadorTituloProximo');
+    var tempoProximo = document.getElementById('contadorTempoProximo');
+    var labelProximo = document.getElementById('contadorLabelProximo');
+
     var estadoAtual = null;
     var deveAbrir = false;
 
+    // Resetar visibilidade
+    eventoAtualCard.style.display = 'none';
+    eventoProximoCard.style.display = 'none';
+    contadorGrid.classList.remove('centralizado');
+
     if(eventoAtual){
-      // Evento acontecendo agora
+      // Mostrar evento atual
       setEstadoContador('atual');
+      eventoAtualCard.style.display = 'block';
       titulo.textContent = eventoAtual.titulo;
 
       var fimMin = minutos(eventoAtual.fim);
@@ -1207,14 +1266,33 @@
         label.textContent = 'para terminar';
       }
 
+      // Se há próximo evento nos próximos 5 minutos, mostrar também
+      if(proximoDentro5Min){
+        eventoProximoCard.style.display = 'block';
+        tituloProximo.textContent = proximoDentro5Min.titulo;
+
+        var inicioMinProx = minutos(proximoDentro5Min.inicio);
+        var diffProx = inicioMinProx - agora;
+
+        tempoProximo.textContent = diffProx + ' min';
+        labelProximo.textContent = 'para começar';
+
+        estadoAtual += '+proximo:' + proximoDentro5Min.titulo;
+      } else {
+        // Se não há próximo evento em 5 min, centralizar o evento atual
+        contadorGrid.classList.add('centralizado');
+      }
+
       // Abrir se evento começou agora
       if(estadoContadorAnterior && estadoContadorAnterior !== estadoAtual){
         deveAbrir = true;
       }
     } else if(proximoEvento){
-      // Próximo evento
+      // Apenas próximo evento - centralizar sempre
       setEstadoContador('proximo');
-      titulo.textContent = proximoEvento.titulo;
+      contadorGrid.classList.add('centralizado');
+      eventoProximoCard.style.display = 'block';
+      tituloProximo.textContent = proximoEvento.titulo;
 
       var inicioMin = minutos(proximoEvento.inicio);
       var diff = inicioMin - agora;
@@ -1222,19 +1300,19 @@
       estadoAtual = 'proximo:' + proximoEvento.titulo;
 
       if(diff <= 0){
-        tempo.textContent = 'Começando...';
-        label.textContent = '';
-        deveAbrir = true; // Abrir quando evento está começando
+        tempoProximo.textContent = 'Começando...';
+        labelProximo.textContent = '';
+        deveAbrir = true;
       } else {
         var horas = Math.floor(diff / 60);
         var mins = diff % 60;
 
         if(horas > 0){
-          tempo.textContent = horas + 'h ' + mins + 'min';
+          tempoProximo.textContent = horas + 'h ' + mins + 'min';
         } else {
-          tempo.textContent = mins + ' min';
+          tempoProximo.textContent = mins + ' min';
         }
-        label.textContent = 'para começar';
+        labelProximo.textContent = 'para começar';
 
         // Abrir quando faltam 5 minutos ou menos
         if(diff <= 5 && estadoContadorAnterior && !estadoContadorAnterior.includes('proximo:' + proximoEvento.titulo)){
@@ -1280,13 +1358,6 @@
     var menuAberto = localStorage.getItem('menuAberto');
     if(menuAberto === 'true'){
       document.getElementById('painelMenu').className = 'painel-controles';
-    }
-
-    // Carregar proporção salva
-    var propSalva = localStorage.getItem('proporcao');
-    if(propSalva){
-      document.getElementById('sliderProporcao').value = propSalva;
-      ajustarProporcao(propSalva);
     }
 
     // Carregar estado de mostrar eventos
@@ -1524,8 +1595,6 @@
     const timerContainer = document.getElementById('timerMainContainer');
     const dataSemanaLinha = document.getElementById('dataSemanaLinha');
     const weatherWidget = document.getElementById('weatherWidget');
-    const btnTimer = document.getElementById('btnModeTimer');
-    const btnClock = document.getElementById('btnModeClock');
 
     console.log('Elementos encontrados:', {
       relogioContainer: !!relogioContainer,
@@ -1546,8 +1615,6 @@
         weatherWidget.classList.add('hidden');
         console.log('Weather widget escondido');
       }
-      btnTimer.classList.add('active');
-      btnClock.classList.remove('active');
 
       // Salva preferência
       localStorage.setItem('displayMode', 'timer');
@@ -1566,12 +1633,19 @@
         weatherWidget.classList.remove('hidden');
         console.log('Weather widget mostrado');
       }
-      btnClock.classList.add('active');
-      btnTimer.classList.remove('active');
 
       // Salva preferência
       localStorage.setItem('displayMode', 'clock');
     }
+  }
+
+  /**
+   * Alterna entre relogio e timer com um clique
+   */
+  function toggleDisplayMode() {
+    const currentMode = localStorage.getItem('displayMode') || 'clock';
+    const newMode = currentMode === 'clock' ? 'timer' : 'clock';
+    setDisplayMode(newMode);
   }
 
   /**

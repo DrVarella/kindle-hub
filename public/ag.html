@@ -6,6 +6,7 @@
     <title>AG - Hub Kindle</title>
     <link rel="stylesheet" href="style.css">
     <script src="timer.js"></script>
+    <script src="points-popup.js"></script>
     <style>
         .ag-container {
             max-width: 800px;
@@ -38,6 +39,7 @@
 
         .ag-container p {
             margin-bottom: 15px;
+            font-size: 20px;
         }
 
         .ag-container hr {
@@ -52,6 +54,70 @@
 
         .cinza {
             color: #666;
+        }
+
+        /* Accordion styles */
+        .accordion-section {
+            margin: 15px 0;
+            border: 2px solid #000;
+            background: #fff;
+        }
+
+        .accordion-header {
+            padding: 15px;
+            background: #f5f5f5;
+            border-bottom: 2px solid #000;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .accordion-header:hover {
+            background: #e8e8e8;
+        }
+
+        .accordion-icon {
+            font-size: 24px;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+
+        .accordion-header.ativo .accordion-icon {
+            transform: rotate(180deg);
+        }
+
+        .accordion-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0 15px;
+        }
+
+        .accordion-content.aberto {
+            max-height: 5000px;
+            padding: 15px;
+            transition: max-height 0.5s ease-in;
+        }
+
+        /* Botão Trium Puerorum */
+        .btn-trium {
+            display: inline-block;
+            padding: 12px 20px;
+            margin: 20px 0;
+            background: #fff;
+            border: 3px solid #000;
+            font-weight: bold;
+            font-size: 18px;
+            text-decoration: none;
+            color: #000;
+            cursor: pointer;
+        }
+
+        .btn-trium:hover {
+            background: #f0f0f0;
         }
 
         /* Botão Voltar ao Topo */
@@ -96,11 +162,18 @@
         <div class="header">
             <h1>Ação de Graças</h1>
             <a href="plano-inclinado.html" class="back-link">Voltar</a>
-            <a href="https://opusdei.org/pt-br/prayers/section/?section1=197&section2=37#dm-prayer-1429" class="back-link" target="_blank" rel="noopener noreferrer">Trium puerórum</a>
+            <a href="https://opusdei.org/pt-br/prayers/section/?section1=197&section2=37#dm-prayer-1429" class="back-link">Trium Puerorum</a>
         </div>
 
         <div class="ag-container">
-            <h1><strong>Pela interseção de:</strong></h1>
+
+            <!-- Seção 1: Intercessores -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Pela interseção de:</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content aberto">
 
             <p>Nossa Senhora de Fátima</p>
             <p>São Pio de Pietrelcina</p>
@@ -116,10 +189,16 @@
             <p>Santa Teresa de Calcutá</p>
             <p>Venerável Bispo Fulton Sheen</p>
             <p>E do meu Anjo da Guarda</p>
+                </div>
+            </div>
 
-            <h2><strong>Rezo por:</strong></h2>
-
-            <h3><strong>Minha família</strong></h3>
+            <!-- Seção 2: Minha família -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Minha família</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
 
             <p>Minha mãe - Luciana</p>
             <p>Minha irmã - Carol</p>
@@ -129,8 +208,16 @@
             <p>Minhas tias - Tia Criança, Evandra, Fátima, Gisele e Lesliane</p>
             <p>Meus primos - Matheus, Leonardo, Antonella, João Paulo, Vinícius, Gabriel</p>
             <p>Demais membros da minha família.</p>
+                </div>
+            </div>
 
-            <h3><strong>Por minha família o Opus Dei:</strong></h3>
+            <!-- Seção 3: Família do Opus Dei -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Por minha família o Opus Dei</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
 
             <p>Pelo Prelado Fernando</p>
             <p>Pelo Dom Mariano Fazio</p>
@@ -174,7 +261,16 @@
             <p>Gabriel Amarquezano</p>
             <p>Pela alma do grande Pe. Francisco Faus</p>
             <p>Pela administração</p>
+                </div>
+            </div>
 
+            <!-- Seção 4: Rapazes e Vocações -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Rapazes de São Rafael e Vocações</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
             <p><strong>Rapazes de São Rafael:</strong></p>
             <p>Angelo +</p>
             <p>Raphael Iglésias</p>
@@ -212,7 +308,16 @@
             <p>Martin</p>
             <p>Ferrazo</p>
             <p>Renan e Julia</p>
+                </div>
+            </div>
 
+            <!-- Seção 5: Meus amigos -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Meus amigos</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
             <p><strong>Meus amigos:</strong></p>
 
             <div class="cinza">
@@ -252,10 +357,16 @@
             </div>
 
             <p>A todos os meus demais amigos.</p>
+                </div>
+            </div>
 
-            <hr>
-
-            <h2><strong>Pela igreja e sua necessidade:</strong></h2>
+            <!-- Seção 6: Pela Igreja -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Pela igreja e sua necessidade</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
             <p>Pelo Santo Padre Papa Leão XIV</p>
             <p>Pelo Dom Odilo</p>
             <p>Pelo Dom Orlando</p>
@@ -264,13 +375,29 @@
             <p>Pelo Pe. Tomás</p>
             <p>Pelo Pe. Luciano</p>
             <p>Pelo Cardeal Robert Sarah</p>
+                </div>
+            </div>
 
-            <h3><strong>Agradecimentos</strong></h3>
+            <!-- Seção 7: Agradecimentos -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Agradecimentos</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
             <p>Pela minha vocação</p>
             <p>Pela minha família</p>
             <p>Por mais este dia de luta e conversão</p>
+                </div>
+            </div>
 
-            <h3><strong>Petições:</strong></h3>
+            <!-- Seção 8: Petições -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Petições</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
             <p>Canonização de Dom Álvaro</p>
             <p>Peço por mais vocações para sua Obra</p>
             <p>Pelos estatudos</p>
@@ -281,14 +408,24 @@
             <p>Se quiseres podes me limpar!</p>
             <p>Fim das Guerras</p>
             <p>Peço o que te peça o Padre</p>
+                </div>
+            </div>
 
-            <h3><strong>Lembrar todos os dias:</strong></h3>
+            <!-- Seção 9: Lembrar todos os dias -->
+            <div class="accordion-section">
+                <div class="accordion-header" onclick="toggleAccordion(this)">
+                    <span>Lembrar todos os dias</span>
+                    <span class="accordion-icon">▼</span>
+                </div>
+                <div class="accordion-content">
             <p>Espirito Santo, quando não entender algo me ajude encontrar o caminho.</p>
             <p>Nossa Senhora, me ajuda a entender o que vou estudar hoje!</p>
             <p>Meu Anjo da guarda, não me deixe cair em distrações.</p>
             <p>Jesus, me ajuda a não perder de vista que tudo é pelas almas, esse é fim último: a Vossa glória!</p>
             <p>Faz-me humildade, Pai. Não me deixes esquecer que carrego o meu tesouro em vaso de barro. Que eu confie mais em ti e menos em mim.</p>
             <p>Faz-me humildade, faz-me puro, faz-me Santo!</p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -296,6 +433,29 @@
     <button id="btnVoltarTopo" title="Voltar ao topo">↑</button>
 
     <script>
+        // Controle do accordion
+        function toggleAccordion(header) {
+            const content = header.nextElementSibling;
+            const isOpen = content.classList.contains('aberto');
+
+            // Apenas alternar o estado do accordion clicado (não fecha os outros)
+            if (isOpen) {
+                content.classList.remove('aberto');
+                header.classList.remove('ativo');
+            } else {
+                content.classList.add('aberto');
+                header.classList.add('ativo');
+            }
+        }
+
+        // Abrir a primeira seção por padrão ao carregar
+        window.addEventListener('DOMContentLoaded', function() {
+            const firstHeader = document.querySelector('.accordion-header');
+            if (firstHeader) {
+                firstHeader.classList.add('ativo');
+            }
+        });
+
         // Controle do botão "Voltar ao Topo"
         const btnVoltarTopo = document.getElementById('btnVoltarTopo');
 

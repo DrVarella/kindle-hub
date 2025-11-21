@@ -239,6 +239,155 @@
             margin: 20px 0;
         }
 
+        /* Mini Timer Panel */
+        #miniTimerPanel {
+            position: fixed;
+            left: -280px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 280px;
+            background: #fff;
+            border: 3px solid #000;
+            border-left: none;
+            border-radius: 0 8px 8px 0;
+            padding: 15px;
+            transition: left 0.3s ease;
+            z-index: 1000;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+        }
+
+        #miniTimerPanel.aberto {
+            left: 0;
+        }
+
+        .mini-timer-toggle {
+            position: absolute;
+            right: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 60px;
+            background: #000;
+            color: #fff;
+            border: 3px solid #000;
+            border-left: none;
+            border-radius: 0 8px 8px 0;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mini-timer-toggle:hover {
+            background: #333;
+        }
+
+        .mini-timer-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #000;
+        }
+
+        .mini-timer-input-group {
+            margin-bottom: 15px;
+        }
+
+        .mini-timer-input-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .mini-timer-input-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #000;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .mini-timer-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .mini-timer-btn {
+            padding: 12px;
+            background: #fff;
+            border: 3px solid #000;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .mini-timer-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .mini-timer-btn-primary {
+            background: #000;
+            color: #fff;
+        }
+
+        .mini-timer-btn-primary:hover {
+            background: #333;
+        }
+
+        .mini-timer-btn-danger {
+            background: #d00;
+            color: #fff;
+            border-color: #d00;
+        }
+
+        .mini-timer-btn-danger:hover {
+            background: #a00;
+        }
+
+        .mini-timer-display {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .mini-timer-time {
+            font-size: 36px;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            color: #000;
+            padding: 15px;
+            background: #f8f8f8;
+            border: 2px solid #000;
+            border-radius: 6px;
+        }
+
+        .mini-timer-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        @media (max-width: 650px) {
+            #miniTimerPanel {
+                width: 240px;
+                left: -240px;
+            }
+
+            .mini-timer-toggle {
+                right: -35px;
+                width: 35px;
+                height: 50px;
+                font-size: 16px;
+            }
+        }
+
         /* Botão Voltar ao Topo */
         #btnVoltarTopo {
             position: fixed;
@@ -306,6 +455,36 @@
     </style>
 </head>
 <body>
+    <!-- Mini Timer Panel -->
+    <div id="miniTimerPanel">
+        <button class="mini-timer-toggle" onclick="toggleMiniTimer()">T</button>
+        <div class="mini-timer-header">Timer</div>
+
+        <!-- Display do Timer (mostrado quando timer está ativo) -->
+        <div id="miniTimerDisplay" class="mini-timer-display" style="display: none;">
+            <div class="mini-timer-time" id="miniTimerTime">00:00</div>
+        </div>
+
+        <!-- Controles quando timer está ativo -->
+        <div id="miniTimerControls" class="mini-timer-controls" style="display: none;">
+            <button class="mini-timer-btn" id="miniTimerPlayPause" onclick="toggleMiniTimerPlayPause()">⏸ Pausar</button>
+            <button class="mini-timer-btn mini-timer-btn-danger" onclick="stopMiniTimer()">■ Stop</button>
+        </div>
+
+        <!-- Input e botões de preset (mostrados quando timer não está ativo) -->
+        <div id="miniTimerSetup">
+            <div class="mini-timer-input-group">
+                <label for="miniTimerMinutes">Minutos:</label>
+                <input type="number" id="miniTimerMinutes" min="1" max="999" placeholder="Ex: 15">
+            </div>
+
+            <div class="mini-timer-buttons">
+                <button class="mini-timer-btn mini-timer-btn-primary" onclick="startMiniTimer()">Iniciar Timer</button>
+                <button class="mini-timer-btn" onclick="startMiniTimer5()">5 minutos</button>
+            </div>
+        </div>
+    </div>
+
     <div class="bible-container">
         <!-- Header -->
         <div class="bible-header">
@@ -363,6 +542,45 @@
         var currentBookIndex = 0;
         var currentChapter = 1;
 
+        // ========== SALVAR PROGRESSO ==========
+
+        /**
+         * Salva o progresso da leitura
+         */
+        function saveReadingProgress() {
+            try {
+                var progress = {
+                    testament: currentTestament,
+                    bookIndex: currentBookIndex,
+                    chapter: currentChapter,
+                    timestamp: new Date().toISOString()
+                };
+                localStorage.setItem('bibleReadingProgress', JSON.stringify(progress));
+            } catch (e) {
+                console.error('Erro ao salvar progresso:', e);
+            }
+        }
+
+        /**
+         * Carrega o progresso salvo
+         */
+        function loadReadingProgress() {
+            try {
+                var saved = localStorage.getItem('bibleReadingProgress');
+                if (saved) {
+                    var progress = JSON.parse(saved);
+                    currentTestament = progress.testament || 'antigoTestamento';
+                    currentBookIndex = progress.bookIndex || 0;
+                    currentChapter = progress.chapter || 1;
+                    console.log('Progresso restaurado:', progress);
+                    return true;
+                }
+            } catch (e) {
+                console.error('Erro ao carregar progresso:', e);
+            }
+            return false;
+        }
+
         // ========== INICIALIZAÇÃO ==========
 
         /**
@@ -370,6 +588,9 @@
          * Otimizado para Kindle com WebKit antigo
          */
         function loadBibleData() {
+            // Carregar progresso salvo
+            loadReadingProgress();
+
             // PRIORIDADE 1: Tenta usar versão embutida (100% offline, sem XHR)
             if (window.BIBLIA_AVE_MARIA) {
                 console.log('Usando versão embutida da Bíblia (modo offline)');
@@ -504,6 +725,7 @@
             // Atualiza interface
             populateBookDropdown();
             renderChapter();
+            saveReadingProgress();
         }
 
         /**
@@ -516,6 +738,7 @@
 
             populateChapterDropdown();
             renderChapter();
+            saveReadingProgress();
         }
 
         /**
@@ -525,6 +748,7 @@
             var select = document.getElementById('chapterSelect');
             currentChapter = parseInt(select.value);
             renderChapter();
+            saveReadingProgress();
         }
 
         // ========== NAVEGAÇÃO ==========
@@ -720,6 +944,119 @@
             });
         } else {
             window.onload = initPage;
+        }
+
+        // Mini Timer Panel Functions
+        function toggleMiniTimer() {
+            var panel = document.getElementById('miniTimerPanel');
+            if (panel.classList.contains('aberto')) {
+                panel.classList.remove('aberto');
+            } else {
+                panel.classList.add('aberto');
+            }
+        }
+
+        function startMiniTimer() {
+            var minutesInput = document.getElementById('miniTimerMinutes');
+            var minutes = parseInt(minutesInput.value);
+
+            if (isNaN(minutes) || minutes < 1) {
+                alert('Por favor, insira um número válido de minutos.');
+                return;
+            }
+
+            // Usar o timer global do timer.js
+            if (window.KindleTimer && typeof window.KindleTimer.start === 'function') {
+                var durationMs = minutes * 60 * 1000; // Converte minutos para milissegundos
+                window.KindleTimer.start(durationMs, 'custom');
+                toggleMiniTimer(); // Fechar o painel
+                minutesInput.value = ''; // Limpar input
+            } else {
+                alert('Sistema de timer não disponível. Recarregue a página.');
+            }
+        }
+
+        function startMiniTimer5() {
+            // Iniciar timer de 5 minutos usando o timer global
+            if (window.KindleTimer && typeof window.KindleTimer.start === 'function') {
+                window.KindleTimer.start(window.KindleTimer.PRESETS['5min'], '5min');
+                toggleMiniTimer(); // Fechar o painel
+            } else {
+                alert('Sistema de timer não disponível. Recarregue a página.');
+            }
+        }
+
+        function toggleMiniTimerPlayPause() {
+            if (!window.KindleTimer) return;
+
+            var state = window.KindleTimer.getState();
+            if (state.isPaused) {
+                window.KindleTimer.resume();
+            } else {
+                window.KindleTimer.pause();
+            }
+            updateMiniTimerUI();
+        }
+
+        function stopMiniTimer() {
+            if (!window.KindleTimer) return;
+            window.KindleTimer.stop();
+            updateMiniTimerUI();
+        }
+
+        function updateMiniTimerUI() {
+            if (!window.KindleTimer) return;
+
+            var state = window.KindleTimer.getState();
+            var setup = document.getElementById('miniTimerSetup');
+            var display = document.getElementById('miniTimerDisplay');
+            var controls = document.getElementById('miniTimerControls');
+            var timeDisplay = document.getElementById('miniTimerTime');
+            var playPauseBtn = document.getElementById('miniTimerPlayPause');
+
+            if (state.isActive) {
+                // Timer ativo - mostrar display e controles
+                setup.style.display = 'none';
+                display.style.display = 'block';
+                controls.style.display = 'block';
+
+                // Atualizar tempo restante
+                var remaining = window.KindleTimer.getRemainingTime();
+                timeDisplay.textContent = window.KindleTimer.formatTime(remaining);
+
+                // Atualizar botão play/pause
+                if (state.isPaused) {
+                    playPauseBtn.textContent = '▶ Continuar';
+                } else {
+                    playPauseBtn.textContent = '⏸ Pausar';
+                }
+            } else {
+                // Timer parado - mostrar setup
+                setup.style.display = 'block';
+                display.style.display = 'none';
+                controls.style.display = 'none';
+            }
+        }
+
+        // Atualizar UI do mini timer a cada segundo
+        var miniTimerInterval = setInterval(function() {
+            if (window.KindleTimer) {
+                var state = window.KindleTimer.getState();
+                if (state.isActive) {
+                    updateMiniTimerUI();
+                }
+            }
+        }, 1000);
+
+        // Inicializar UI do mini timer quando carregar
+        if (window.addEventListener) {
+            window.addEventListener('DOMContentLoaded', function() {
+                setTimeout(function() {
+                    if (window.KindleTimer) {
+                        updateMiniTimerUI();
+                    }
+                }, 100);
+            });
         }
     </script>
 </body>

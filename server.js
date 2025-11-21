@@ -82,6 +82,15 @@ db.exec(`
     due_date TEXT,
     created_at TEXT DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS daily_habits_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date DATE NOT NULL,
+    habit_name TEXT NOT NULL,
+    completed INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(date, habit_name)
+  );
 `);
 
 // ============= ROTAS DE TAREFAS =============
@@ -238,6 +247,8 @@ app.patch('/api/notion/habits/:pageId', async (req, res) => {
     const { concluido, habitName } = req.body;
     const notionToken = process.env.NOTION_TOKEN;
 
+    console.log(`📝 Atualizando hábito: '${habitName}' = ${concluido}`);
+
     if (!notionToken) {
       return res.status(400).json({ error: 'NOTION_TOKEN não configurado' });
     }
@@ -248,6 +259,9 @@ app.patch('/api/notion/habits/:pageId', async (req, res) => {
     const parts = pageId.split('-');
     // UUID do Notion tem 5 partes (8-4-4-4-12 caracteres), então pegamos as primeiras 5 partes
     const realPageId = parts.slice(0, 5).join('-');
+
+    console.log(`🔑 PageId original: ${pageId}`);
+    console.log(`🔑 PageId processado: ${realPageId}`);
 
     // Usar fetch para atualizar a propriedade específica do hábito
     const response = await fetch(`https://api.notion.com/v1/pages/${realPageId}`, {
@@ -266,13 +280,449 @@ app.patch('/api/notion/habits/:pageId', async (req, res) => {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error(`❌ Erro Notion API (${response.status}):`, JSON.stringify(errorData, null, 2));
+      throw new Error(`Notion API error: ${response.status} - ${JSON.stringify(errorData)}`);
+    }
+
+    console.log(`✅ Hábito '${habitName}' atualizado com sucesso`);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('❌ Erro ao atualizar hábito no Notion:', error.message);
+    res.status(500).json({ error: 'Erro ao atualizar hábito no Notion', details: error.message });
+  }
+});
+
+// ============= ROTAS DE HISTÓRICO DE HÁBITOS =============
+// Salvar estado diário completo
+app.post('/api/habits/save', (req, res) => {
+  try {
+    const { date, habits } = req.body;
+
+    if (!date || !habits) {
+      return res.status(400).json({ error: 'Data e hábitos são obrigatórios' });
+    }
+
+    const stmt = db.prepare(`
+      INSERT INTO daily_habits_history (date, habit_name, completed)
+      VALUES (?, ?, ?)
+      ON CONFLICT(date, habit_name)
+      DO UPDATE SET completed = excluded.completed
+    `);
+
+    const insert = db.transaction((habitsList) => {
+      for (const [habitName, completed] of Object.entries(habitsList)) {
+        stmt.run(date, habitName, completed ? 1 : 0);
+      }
+    });
+
+    insert(habits);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Erro ao salvar histórico de hábitos:', error);
+    res.status(500).json({ error: 'Erro ao salvar histórico' });
+  }
+});
+
+// Buscar histórico
+app.get('/api/habits/history', (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    const history = db.prepare(`
+      SELECT date, habit_name, completed
+      FROM daily_habits_history
+      WHERE date >= date(?)
+      ORDER BY date DESC, habit_name
+    `).all(startDate.toISOString().split('T')[0]);
+
+    res.json(history);
+  } catch (error) {
+    console.error('Erro ao buscar histórico:', error);
+    res.status(500).json({ error: 'Erro ao buscar histórico' });
+  }
+});
+
+// Analytics - Estatísticas
+app.get('/api/habits/analytics', (req, res) => {
+  try {
+    const days = parseInt(req.query.days) || 30;
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Porcentagem por dia
+    const dailyStats = db.prepare(`
+      SELECT
+        date,
+        COUNT(*) as total,
+        SUM(completed) as completed,
+        ROUND(CAST(SUM(completed) AS FLOAT) / COUNT(*) * 100, 2) as percentage
+      FROM daily_habits_history
+      WHERE date >= date(?)
+      GROUP BY date
+      ORDER BY date ASC
+    `).all(startDate.toISOString().split('T')[0]);
+
+    // Hábitos mais faltosos
+    const habitStats = db.prepare(`
+      SELECT
+        habit_name,
+        COUNT(*) as total_days,
+        SUM(completed) as completed_days,
+        COUNT(*) - SUM(completed) as missed_days,
+        ROUND((COUNT(*) - SUM(completed)) * 100.0 / COUNT(*), 2) as miss_percentage
+      FROM daily_habits_history
+      WHERE date >= date(?)
+      GROUP BY habit_name
+      ORDER BY missed_days DESC
+      LIMIT 10
+    `).all(startDate.toISOString().split('T')[0]);
+
+    res.json({ dailyStats, habitStats });
+  } catch (error) {
+    console.error('Erro ao calcular analytics:', error);
+    res.status(500).json({ error: 'Erro ao calcular analytics' });
+  }
+});
+
+// ============= ROTAS DO NOTION - NORMAS SEMANAIS =============
+app.get('/api/notion/weekly-habits', async (req, res) => {
+  if (!notionClient) {
+    return res.status(500).json({ error: 'Notion não configurado' });
+  }
+
+  try {
+    const databaseId = '2b238d12893a80c688b2c706ccae6b6a'; // ID da database de normas semanais
+    const notionToken = process.env.NOTION_TOKEN || fs.readFileSync(path.join(__dirname, 'notion-token.txt'), 'utf8').trim();
+
+    // Buscar a página da semana atual
+    const response = await fetch(`https://api.notion.com/v1/databases/${databaseId}/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${notionToken}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        page_size: 1,
+        sorts: [{ timestamp: 'created_time', direction: 'descending' }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Notion API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+
+    if (data.results.length === 0) {
+      return res.json({ habits: [], message: 'Nenhuma página encontrada' });
+    }
+
+    const page = data.results[0];
+    const habits = {
+      pageId: page.id,
+      confissao: page.properties['Confissão']?.checkbox || false,
+      disciplina: page.properties['Disciplina']?.checkbox || false,
+      sabado: page.properties['Sábado']?.checkbox || false
+    };
+
+    res.json(habits);
+  } catch (error) {
+    console.error('Erro ao buscar normas semanais:', error);
+    res.status(500).json({ error: 'Erro ao buscar normas semanais do Notion' });
+  }
+});
+
+app.patch('/api/notion/weekly-habits/:pageId', async (req, res) => {
+  if (!notionClient) {
+    return res.status(500).json({ error: 'Notion não configurado' });
+  }
+
+  try {
+    const { pageId } = req.params;
+    const { habitName, checked } = req.body;
+    const notionToken = process.env.NOTION_TOKEN || fs.readFileSync(path.join(__dirname, 'notion-token.txt'), 'utf8').trim();
+
+    const response = await fetch(`https://api.notion.com/v1/pages/${pageId}`, {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${notionToken}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        properties: {
+          [habitName]: { checkbox: checked }
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
       throw new Error(`Notion API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Erro ao atualizar hábito no Notion:', error.message);
-    res.status(500).json({ error: 'Erro ao atualizar hábito no Notion', details: error.message });
+    console.error('Erro ao atualizar norma semanal:', error);
+    res.status(500).json({ error: 'Erro ao atualizar norma semanal' });
+  }
+});
+
+// ============= ROTAS DO NOTION - ANOTAÇÕES =============
+const ANOTACOES_DB_ID = '23038d12893a80d8b56af797531e6680'; // ID da database de anotações
+
+app.get('/api/notion/annotations', async (req, res) => {
+  if (!notionClient) {
+    return res.status(500).json({ error: 'Notion não configurado' });
+  }
+
+  try {
+    const { tag } = req.query;
+    const notionToken = process.env.NOTION_TOKEN || fs.readFileSync(path.join(__dirname, 'notion-token.txt'), 'utf8').trim();
+
+    const body = {
+      page_size: 100,
+      sorts: [{ timestamp: 'created_time', direction: 'descending' }]
+    };
+
+    // Filtrar por tag se fornecida
+    if (tag) {
+      body.filter = {
+        property: 'Pasta',
+        multi_select: {
+          contains: tag
+        }
+      };
+    }
+
+    const response = await fetch(`https://api.notion.com/v1/databases/${ANOTACOES_DB_ID}/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${notionToken}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Notion API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    console.log(`📝 Notion retornou ${data.results.length} anotações`);
+
+    const annotations = data.results.map(page => {
+      // Debug: mostrar propriedades disponíveis
+      if (data.results.indexOf(page) === 0) {
+        console.log('🔍 Propriedades disponíveis na primeira página:', Object.keys(page.properties));
+      }
+
+      // Extrair título com validação robusta
+      let title = 'Sem título';
+      if (page.properties.Nome && page.properties.Nome.title && page.properties.Nome.title.length > 0) {
+        title = page.properties.Nome.title[0].plain_text || 'Sem título';
+      } else if (page.properties.Name && page.properties.Name.title && page.properties.Name.title.length > 0) {
+        title = page.properties.Name.title[0].plain_text || 'Sem título';
+      } else if (page.properties.Título && page.properties.Título.title && page.properties.Título.title.length > 0) {
+        title = page.properties.Título.title[0].plain_text || 'Sem título';
+      }
+
+      // Extrair tags com validação robusta
+      let tags = [];
+      if (page.properties.Pasta && page.properties.Pasta.multi_select) {
+        tags = page.properties.Pasta.multi_select.map(t => t.name);
+      } else if (page.properties.Tags && page.properties.Tags.multi_select) {
+        tags = page.properties.Tags.multi_select.map(t => t.name);
+      } else if (page.properties.Categoria && page.properties.Categoria.multi_select) {
+        tags = page.properties.Categoria.multi_select.map(t => t.name);
+      }
+
+      return {
+        id: page.id,
+        title: title,
+        tags: tags,
+        url: page.url,
+        createdTime: page.created_time
+      };
+    });
+
+    res.json(annotations);
+  } catch (error) {
+    console.error('Erro ao buscar anotações:', error);
+    res.status(500).json({ error: 'Erro ao buscar anotações do Notion' });
+  }
+});
+
+// Buscar conteúdo completo de uma anotação
+app.get('/api/notion/annotations/:id', async (req, res) => {
+  if (!notionClient) {
+    return res.status(500).json({ error: 'Notion não configurado' });
+  }
+
+  try {
+    const { id } = req.params;
+    const notionToken = process.env.NOTION_TOKEN || fs.readFileSync(path.join(__dirname, 'notion-token.txt'), 'utf8').trim();
+
+    // Buscar página
+    const pageResponse = await fetch(`https://api.notion.com/v1/pages/${id}`, {
+      headers: {
+        'Authorization': `Bearer ${notionToken}`,
+        'Notion-Version': '2022-06-28'
+      }
+    });
+
+    if (!pageResponse.ok) {
+      throw new Error(`Notion API error: ${pageResponse.status}`);
+    }
+
+    const page = await pageResponse.json();
+
+    // Buscar blocos de conteúdo
+    const blocksResponse = await fetch(`https://api.notion.com/v1/blocks/${id}/children`, {
+      headers: {
+        'Authorization': `Bearer ${notionToken}`,
+        'Notion-Version': '2022-06-28'
+      }
+    });
+
+    if (!blocksResponse.ok) {
+      throw new Error(`Notion API error: ${blocksResponse.status}`);
+    }
+
+    const blocks = await blocksResponse.json();
+
+    // Extrair texto dos blocos
+    const content = blocks.results.map(block => {
+      if (block.type === 'paragraph' && block.paragraph.rich_text.length > 0) {
+        return block.paragraph.rich_text.map(t => t.plain_text).join('');
+      }
+      if (block.type === 'heading_1' && block.heading_1.rich_text.length > 0) {
+        return '# ' + block.heading_1.rich_text.map(t => t.plain_text).join('');
+      }
+      if (block.type === 'heading_2' && block.heading_2.rich_text.length > 0) {
+        return '## ' + block.heading_2.rich_text.map(t => t.plain_text).join('');
+      }
+      if (block.type === 'heading_3' && block.heading_3.rich_text.length > 0) {
+        return '### ' + block.heading_3.rich_text.map(t => t.plain_text).join('');
+      }
+      if (block.type === 'bulleted_list_item' && block.bulleted_list_item.rich_text.length > 0) {
+        return '• ' + block.bulleted_list_item.rich_text.map(t => t.plain_text).join('');
+      }
+      if (block.type === 'numbered_list_item' && block.numbered_list_item.rich_text.length > 0) {
+        return '1. ' + block.numbered_list_item.rich_text.map(t => t.plain_text).join('');
+      }
+      return '';
+    }).filter(t => t).join('\n\n');
+
+    // Extrair título com validação robusta
+    let title = 'Sem título';
+    if (page.properties.Nome && page.properties.Nome.title && page.properties.Nome.title.length > 0) {
+      title = page.properties.Nome.title[0].plain_text || 'Sem título';
+    } else if (page.properties.Name && page.properties.Name.title && page.properties.Name.title.length > 0) {
+      title = page.properties.Name.title[0].plain_text || 'Sem título';
+    } else if (page.properties.Título && page.properties.Título.title && page.properties.Título.title.length > 0) {
+      title = page.properties.Título.title[0].plain_text || 'Sem título';
+    }
+
+    // Extrair tags com validação robusta
+    let tags = [];
+    if (page.properties.Pasta && page.properties.Pasta.multi_select) {
+      tags = page.properties.Pasta.multi_select.map(t => t.name);
+    } else if (page.properties.Tags && page.properties.Tags.multi_select) {
+      tags = page.properties.Tags.multi_select.map(t => t.name);
+    } else if (page.properties.Categoria && page.properties.Categoria.multi_select) {
+      tags = page.properties.Categoria.multi_select.map(t => t.name);
+    }
+
+    res.json({
+      id: page.id,
+      title: title,
+      tags: tags,
+      content: content,
+      createdTime: page.created_time,
+      url: page.url
+    });
+  } catch (error) {
+    console.error('Erro ao buscar anotação:', error);
+    res.status(500).json({ error: 'Erro ao buscar anotação do Notion' });
+  }
+});
+
+app.post('/api/notion/annotations', async (req, res) => {
+  if (!notionClient) {
+    return res.status(500).json({ error: 'Notion não configurado' });
+  }
+
+  try {
+    const { title, content, tags } = req.body;
+    const notionToken = process.env.NOTION_TOKEN || fs.readFileSync(path.join(__dirname, 'notion-token.txt'), 'utf8').trim();
+
+    const response = await fetch('https://api.notion.com/v1/pages', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${notionToken}`,
+        'Notion-Version': '2022-06-28',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        parent: { database_id: ANOTACOES_DB_ID },
+        properties: {
+          Nome: {
+            title: [{ text: { content: title || 'Nova Anotação' } }]
+          },
+          Pasta: {
+            multi_select: tags ? tags.map(tag => ({ name: tag })) : []
+          }
+        },
+        children: content ? [{
+          object: 'block',
+          type: 'paragraph',
+          paragraph: {
+            rich_text: [{ text: { content } }]
+          }
+        }] : []
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(`Notion API error: ${response.status} - ${JSON.stringify(errorData)}`);
+    }
+
+    const data = await response.json();
+    res.json({ success: true, pageId: data.id, url: data.url });
+  } catch (error) {
+    console.error('Erro ao criar anotação:', error);
+    res.status(500).json({ error: 'Erro ao criar anotação no Notion' });
+  }
+});
+
+// ============= ROTA DA API DE PONTOS (CAMINHO/SULCO/FORJA) =============
+app.get('/api/escriva/random-point', async (req, res) => {
+  try {
+    const apiUrl = 'https://escriva.org/api/v1/points/random/?book_type=camino&book_type=surco&book_type=forja&site_id=6';
+
+    const response = await fetch(apiUrl, {
+      headers: {
+        'accept': 'application/json'
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Escriba API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    res.json(data);
+  } catch (error) {
+    console.error('Erro ao buscar ponto aleatório:', error);
+    res.status(500).json({ error: 'Erro ao buscar ponto da API Escriba.org' });
   }
 });
 
